@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Súper Repuestos El Salvador - Buscador</title>
+  <!-- Enlace a la hoja de estilos externa -->
+  <link rel="stylesheet" href="style.css">
+  <!-- Iconos Lucide opcionales mediante CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- HEADER / NAVBAR -->
+  <header class="navbar">
+    <div class="nav-left">
+      <a href="#" class="brand-logo">
+        <span class="logo-box">S</span>
+        <div class="logo-titles">
+          <span class="logo-main">SÚPER REPUESTOS</span>
+          <span class="logo-sub">EL SALVADOR</span>
+        </div>
+      </a>
+      <nav class="nav-menu">
+        <a href="#" class="active">Inicio</a>
+        <a href="#">Catálogo</a>
+        <a href="#">Marcas</a>
+        <a href="#"><i class="fa-solid fa-location-dot"></i> Sucursales</a>
+      </nav>
+    </div>
+
+    <div class="nav-right">
+      <button class="icon-btn" aria-label="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
+      <button class="icon-btn" aria-label="Usuario"><i class="fa-regular fa-user"></i></button>
+      <button class="icon-btn cart-btn" aria-label="Carrito">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span class="badge">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- HERO SECTION CON FONDO OSCURO -->
+  <section class="hero-section">
+    <div class="hero-container">
+      <div class="hero-content">
+        <h1 class="hero-title">
+          ENCUENTRA EL REPUESTO<br>
+          <span class="text-red">QUE NECESITAS</span>
+        </h1>
+        <p class="hero-subtitle">Busca por nombre, código o selecciona tu vehículo.</p>
+
+        <!-- BUSCADOR POR TEXTO -->
+        <div class="search-bar">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" placeholder="Ej: pastillas de freno, filtro de aceite...">
+          <button class="btn-primary-red">Buscar</button>
+        </div>
+
+        <!-- SELECTOR DE VEHÍCULO -->
+        <div class="vehicle-picker-card">
+          <div class="picker-header">
+            <i class="fa-solid fa-car"></i>
+            <span>BUSCA POR VEHÍCULO</span>
+          </div>
+          <div class="picker-fields">
+            <div class="field-item">
+              <label>MARCA</label>
+              <select>
+                <option value="">Selecciona</option>
+                <option value="toyota">Toyota</option>
+                <option value="nissan">Nissan</option>
+                <option value="hyundai">Hyundai</option>
+              </select>
+            </div>
+            <div class="field-item">
+              <label>MODELO</label>
+              <select>
+                <option value="">Selecciona</option>
+                <option value="corolla">Corolla</option>
+                <option value="hilux">Hilux</option>
+              </select>
+            </div>
+            <div class="field-item">
+              <label>AÑO</label>
+              <select>
+                <option value="">Selecciona</option>
+                <option value="2023">2023</option>
+                <option value="2022">2022</option>
+                <option value="2021">2021</option>
+              </select>
+            </div>
+            <button class="btn-primary-red picker-btn">
+              <i class="fa-solid fa-filter"></i> Buscar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CATEGORÍAS PRINCIPALES -->
+  <section class="categories-bar">
+    <div class="section-container">
+      <h2 class="section-heading">CATEGORÍAS PRINCIPALES</h2>
+      <div class="categories-grid">
+        <div class="category-item">
+          <i class="fa-solid fa-oil-can"></i>
+          <span>Motor</span>
+        </div>
+        <div class="category-item">
+          <i class="fa-solid fa-car-battery"></i>
+          <span>Eléctrico</span>
+        </div>
+        <div class="category-item active">
+          <i class="fa-solid fa-compact-disc"></i>
+          <span>Frenos</span>
+        </div>
+        <div class="category-item">
+          <i class="fa-solid fa-gears"></i>
+          <span>Transmisión</span>
+        </div>
+        <div class="category-item">
+          <i class="fa-solid fa-arrows-up-down"></i>
+          <span>Suspensión</span>
+        </div>
+        <div class="category-item">
+          <i class="fa-solid fa-snowflake"></i>
+          <span>Aire Acond.</span>
+        </div>
+        <div class="category-item">
+          <i class="fa-solid fa-screwdriver-wrench"></i>
+          <span>Accesorios</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN DE RESULTADOS Y FILTROS -->
+  <main class="main-layout section-container">
+    <!-- FILTROS LATERALES -->
+    <aside class="sidebar-filters">
+      <div class="filters-top">
+        <h3>Filtros</h3>
+        <a href="#" class="clear-link">Limpiar filtros</a>
+      </div>
+
+      <div class="filter-group">
+        <h4>Categoría</h4>
+        <label><input type="checkbox"> Motor (42)</label>
+        <label><input type="checkbox" checked> Frenos (28)</label>
+        <label><input type="checkbox"> Suspensión (17)</label>
+        <label><input type="checkbox"> Eléctrico (12)</label>
+      </div>
+
+      <div class="filter-group">
+        <h4>Marca</h4>
+        <label><input type="checkbox" checked> Toyota (35)</label>
+        <label><input type="checkbox"> Nissan (22)</label>
+        <label><input type="checkbox"> Hyundai (18)</label>
+        <label><input type="checkbox"> Kia (14)</label>
+      </div>
+
+      <div class="filter-group">
+        <h4>Disponibilidad</h4>
+        <label><input type="checkbox" checked> Disponible (87)</label>
+        <label><input type="checkbox"> Agotado (13)</label>
+      </div>
+    </aside>
+
+    <!-- LISTADO DE PRODUCTOS -->
+    <section class="results-area">
+      <div class="results-header">
+        <div>
+          <h2 class="query-title">Resultados para "pastillas de freno"</h2>
+          <p class="results-count">87 productos encontrados</p>
+        </div>
+        <div class="sort-box">
+          <label>Ordenar por:</label>
+          <select>
+            <option>Más relevantes</option>
+            <option>Menor precio</option>
+            <option>Mayor precio</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="products-grid">
+        <!-- Tarjeta 1 -->
+        <article class="product-card">
+          <span class="badge-compatible">Compatible</span>
+          <div class="card-img-wrap">
+            <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&auto=format&fit=crop&q=60" alt="Pastillas de freno">
+          </div>
+          <div class="card-body">
+            <h3 class="product-name">Pastillas de freno delanteras</h3>
+            <p class="product-compatibility">Toyota Corolla 2018 - 2022</p>
+            <span class="product-brand">BOSCH</span>
+            <span class="product-code">Código: 0986494030</span>
+            <div class="card-footer">
+              <span class="price">$48.50</span>
+              <div class="actions">
+                <button class="btn-card-action">Ver repuesto</button>
+                <button class="btn-cart-mini"><i class="fa-solid fa-cart-plus"></i></button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Tarjeta 2 -->
+        <article class="product-card">
+          <span class="badge-compatible">Compatible</span>
+          <div class="card-img-wrap">
+            <img src="https://images.unsplash.com/photo-1600705723142-d66c19f2a96a?w=400&auto=format&fit=crop&q=60" alt="Disco de freno">
+          </div>
+          <div class="card-body">
+            <h3 class="product-name">Disco de freno delantero ventilado</h3>
+            <p class="product-compatibility">Toyota Corolla 2018 - 2022</p>
+            <span class="product-brand">brembo</span>
+            <span class="product-code">Código: 09.A387.10</span>
+            <div class="card-footer">
+              <span class="price">$72.90</span>
+              <div class="actions">
+                <button class="btn-card-action">Ver repuesto</button>
+                <button class="btn-cart-mini"><i class="fa-solid fa-cart-plus"></i></button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Tarjeta 3 -->
+        <article class="product-card">
+          <span class="badge-compatible">Compatible</span>
+          <div class="card-img-wrap">
+            <img src="https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=400&auto=format&fit=crop&q=60" alt="Filtro de aceite">
+          </div>
+          <div class="card-body">
+            <h3 class="product-name">Filtro de aceite Premium</h3>
+            <p class="product-compatibility">Toyota Corolla 2018 - 2022</p>
+            <span class="product-brand">WIX FILTERS</span>
+            <span class="product-code">Código: WL7447</span>
+            <div class="card-footer">
+              <span class="price">$12.30</span>
+              <div class="actions">
+                <button class="btn-card-action">Ver repuesto</button>
+                <button class="btn-cart-mini"><i class="fa-solid fa-cart-plus"></i></button>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+</body>
+</html>
