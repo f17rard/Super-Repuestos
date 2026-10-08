@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buscador de repuestos</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="encabezado">
+  <div class="encabezado-interno">
+    <h1>Buscador de repuestos</h1>
+    <p class="sub">Elige el vehículo y escribe el repuesto para ver su precio y el stock por sucursal.</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- ===== T2: Buscador de repuestos ===== -->
+  <form id="form-busqueda" class="buscador" novalidate>
+    <div class="campo" id="campo-marca">
+      <label for="marca">Marca</label>
+      <select id="marca" required><option value="">Selecciona una marca</option></select>
+      <span class="msg-campo" id="err-marca"></span>
+    </div>
+    <div class="campo" id="campo-modelo">
+      <label for="modelo">Modelo</label>
+      <select id="modelo" required disabled><option value="">Selecciona un modelo</option></select>
+      <span class="msg-campo" id="err-modelo"></span>
+    </div>
+    <div class="campo" id="campo-anio">
+      <label for="anio">Año</label>
+      <select id="anio" required disabled><option value="">Selecciona un año</option></select>
+      <span class="msg-campo" id="err-anio"></span>
+    </div>
+    <div class="campo ancho" id="campo-repuesto">
+      <label for="repuesto">Repuesto</label>
+      <input id="repuesto" type="text" autocomplete="off" placeholder="Por ejemplo: filtro de aceite" required>
+      <span class="msg-campo" id="err-repuesto"></span>
+    </div>
+    <div class="acciones">
+      <button type="submit" id="btn-buscar">Buscar</button>
+      <span class="estado" id="estado" role="status" aria-live="polite"></span>
+    </div>
+  </form>
+
+  <!-- ===== T3: Resultado de búsqueda ===== -->
+  <section id="resultados" aria-live="polite"></section>
+
+  <!-- Aquí se mostrarán los mensajes de T4 (sin stock), T5 (no encontrado) y T6 (error de inventario) -->
+  <section id="mensajes" aria-live="polite"></section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+/* =====================================================================
+   CONFIGURACIÓN
+   1) Pega aquí la URL y la anon key de TU proyecto de Supabase
+      (Project Settings > API).
+   2) Si Machado (T1) nombra las tablas o columnas distinto, solo cambia
+      los nombres de este bloque.
+   ===================================================================== */
+const CONFIG = {
+  SUPABASE_URL: "https://wrpkjszpuwzobpsvxfhk.supabase.co",
+  SUPABASE_ANON_KEY: "TU_ANON_KEY",
+
+  tablas: {
+    vehiculos: "vehiculos",              // id, marca, modelo, anio
+    repuestos: "repuestos",              // id, nombre, precio
+    compatibilidad: "repuesto_vehiculo", // repuesto_id, vehiculo_id
+    inventario: "inventario",            // repuesto_id, sucursal_id, stock
+    sucursales: "sucursales"             // id, nombre
+  },
+  moneda: { locale: "es-SV", codigo: "USD" }
+};
+
+const db = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+const T = CONFIG.tablas;
+
+/* ---------- Utilidades ---------- */
+const $ = (id) => document.getElementById(id);
+const formatoPrecio = new Intl.NumberFormat(CONFIG.moneda.locale, {
+  style: "currency", currency: CONFIG.moneda.codigo
+});
+const unicos = (arr) => [...new Set(arr)];
+const escapar = (s) => String(s).replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function llenarLista(select, valores, textoInicial) {
+  select.innerHTML = `<option value="">${textoInicial}</option>` +
+    valores.map((v) => `<option value="${escapar(v)}">${escapar(v)}</option>`).join("");
+  select.disabled = valores.length === 0;
+}
+
+/* ---------- T2: listas en cascada (marca > modelo > año) ---------- */
+async function cargarMarcas() {
+  const { data, error } = await db.from(T.vehiculos).select("marca");
+  if (error) { console.error(error); $("estado").textContent = "No se pudieron cargar las marcas."; return; }
+  llenarLista($("marca"), unicos(data.map((r) => r.marca)).sort(), "Selecciona una marca");
+}
+
+async function cargarModelos(marca) {
+  llenarLista($("modelo"), [], "Selecciona un modelo");
+  llenarLista($("anio"), [], "Selecciona un año");
+  if (!marca) return;
+  const { data, error } = await db.from(T.vehiculos).select("modelo").eq("marca", marca);
+  if (error) { console.error(error); return; }
+  llenarLista($("modelo"), unicos(data.map((r) => r.modelo)).sort(), "Selecciona un modelo");
+}
+
+async function cargarAnios(marca, modelo) {
+  llenarLista($("anio"), [], "Selecciona un año");
+  if (!marca || !modelo) return;
+  const { data, error } = await db.from(T.vehiculos).select("anio")
+    .eq("marca", marca).eq("modelo", modelo);
+  if (error) { console.error(error); return; }
+  llenarLista($("anio"), unicos(data.map((r) => r.anio)).sort((a, b) => b - a), "Selecciona un año");
+}
+
+$("marca").addEventListener("change", (e) => cargarModelos(e.target.value));
+$("modelo").addEventListener("change", (e) => cargarAnios($("marca").value, e.target.value));
+
+/* ---------- T2: validación de campos obligatorios ---------- */
+function validar() {
+  const reglas = [
+    ["marca", "Selecciona una marca."],
+    ["modelo", "Selecciona un modelo."],
+    ["anio", "Selecciona un año."],
+    ["repuesto", "Escribe el nombre del repuesto."]
+  ];
+  let valido = true;
+  for (const [id, mensaje] of reglas) {
+    const vacio = !$(id).value.trim();
+    $("campo-" + id).classList.toggle("invalido", vacio);
+    $("err-" + id).textContent = vacio ? mensaje : "";
+    if (vacio) valido = false;
+  }
+  return valido;
+}
+
+/* ---------- T2: consulta a Supabase ---------- */
+async function consultarRepuestos({ marca, modelo, anio, repuesto }) {
+  // vehiculos y compatibilidad con !inner: solo repuestos compatibles con el vehículo elegido (RN1)
+  const seleccion = `
+    id, nombre, precio,
+    ${T.compatibilidad}!inner (
+      ${T.vehiculos}!inner ( marca, modelo, anio )
+    ),
+    ${T.inventario} ( stock, ${T.sucursales} ( nombre ) )
+  `;
+  const base = `${T.compatibilidad}.${T.vehiculos}`;
+  return db.from(T.repuestos).select(seleccion)
+    .ilike("nombre", `%${repuesto.trim()}%`)
+    .eq(`${base}.marca`, marca)
+    .eq(`${base}.modelo`, modelo)
+    .eq(`${base}.anio`, Number(anio));
+}
+
+/* Convierte la respuesta de Supabase en una estructura simple para pintar */
+function normalizar(filas) {
+  return filas.map((r) => ({
+    id: r.id,
+    nombre: r.nombre,
+    precio: r.precio, // precio del catálogo (RN2)
+    sucursales: (r[T.inventario] || []).map((i) => ({
+      nombre: i[T.sucursales]?.nombre ?? "Sucursal sin nombre",
+      stock: i.stock ?? 0 // stock por sucursal (RN3)
+    }))
+  }));
+}
+
+/* ---------- T3: resultado de búsqueda ---------- */
+function mostrarResultados(repuestos) {
+  const cont = $("resultados");
+  const total = repuestos.length;
+  const tarjetas = repuestos.map((r) => {
+    const filas = r.sucursales.map((s) => `
+      <tr>
+        <td>${escapar(s.nombre)}</td>
+        <td class="num ${s.stock > 0 ? "stock-ok" : "stock-cero"}">${s.stock}</td>
+      </tr>`).join("");
+    return `
+      <article class="repuesto">
+        <div class="repuesto-cab">
+          <h2>${escapar(r.nombre)}</h2>
+          <span class="precio">${formatoPrecio.format(r.precio)}</span>
+        </div>
+        <table>
+          <thead><tr><th>Sucursal</th><th class="num">Stock</th></tr></thead>
+          <tbody>${filas}</tbody>
+        </table>
+      </article>`;
+  }).join("");
+  cont.innerHTML =
+    `<p class="resumen">${total} ${total === 1 ? "repuesto encontrado" : "repuestos encontrados"}</p>` + tarjetas;
+}
+
+function limpiarPantalla() {
+  $("resultados").innerHTML = "";
+  $("mensajes").innerHTML = "";
+}
+
+/* ---------- Ganchos para las tareas de otros compañeros ----------
+   Cada función se llama en el momento correcto del flujo. Quien tenga la tarea
+   solo debe completar su función, sin tocar el resto del archivo.            */
+function mostrarSinStock(repuestos)   { /* T4 (Meneses): "Sin stock en ninguna sucursal" */ }
+function mostrarNoEncontrado()        { /* T5 (Meneses): "No se encontró el repuesto que busca" */ }
+function mostrarErrorInventario(err)  { /* T6 (José Luis): "No se pudo consultar el stock, intenta de nuevo más tarde" */ }
+
+/* ---------- T2: flujo del botón "Buscar" ---------- */
+$("form-busqueda").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  limpiarPantalla();
+  if (!validar()) return;
+
+  const boton = $("btn-buscar");
+  boton.disabled = true;
+  $("estado").textContent = "Buscando…";
+
+  const params = {
+    marca: $("marca").value,
+    modelo: $("modelo").value,
+    anio: $("anio").value,
+    repuesto: $("repuesto").value
+  };
+
+  try {
+    const { data, error } = await consultarRepuestos(params);
+    if (error) throw error;
+
+    const repuestos = normalizar(data);
+    if (repuestos.length === 0) { mostrarNoEncontrado(); return; }
+
+    mostrarResultados(repuestos); // T3
+
+    const hayStock = repuestos.some((r) => r.sucursales.some((s) => s.stock > 0));
+    if (!hayStock) mostrarSinStock(repuestos);
+  } catch (err) {
+    console.error(err);
+    mostrarErrorInventario(err);
+  } finally {
+    boton.disabled = false;
+    $("estado").textContent = "";
+  }
+});
+
+cargarMarcas();
+</script>
+</body>
+</html>
