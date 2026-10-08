@@ -51,40 +51,29 @@
   <section id="mensajes" aria-live="polite"></section>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 /* =====================================================================
-   CONFIGURACIÓN
-   1) Pega aquí la URL y la anon key de TU proyecto de Supabase
-      (Project Settings > API).
-   2) Si Machado (T1) nombra las tablas o columnas distinto, solo cambia
-      los nombres de este bloque.
+   El navegador solo habla con NUESTRO backend (/api/...).
+   La conexión a Supabase vive en backend/main.py.
    ===================================================================== */
-const CONFIG = {
-  SUPABASE_URL: "https://wrpkjszpuwzobpsvxfhk.supabase.co",
-  SUPABASE_ANON_KEY: "TU_ANON_KEY",
-
-  tablas: {
-    vehiculos: "vehiculos",              // id, marca, modelo, anio
-    repuestos: "repuestos",              // id, nombre, precio
-    compatibilidad: "repuesto_vehiculo", // repuesto_id, vehiculo_id
-    inventario: "inventario",            // repuesto_id, sucursal_id, stock
-    sucursales: "sucursales"             // id, nombre
-  },
-  moneda: { locale: "es-SV", codigo: "USD" }
-};
-
-const db = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-const T = CONFIG.tablas;
-
-/* ---------- Utilidades ---------- */
 const $ = (id) => document.getElementById(id);
-const formatoPrecio = new Intl.NumberFormat(CONFIG.moneda.locale, {
-  style: "currency", currency: CONFIG.moneda.codigo
-});
-const unicos = (arr) => [...new Set(arr)];
+const MONEDA = { locale: "es-SV", codigo: "USD" };
+const formatoPrecio = new Intl.NumberFormat(MONEDA.locale, { style: "currency", currency: MONEDA.codigo });
 const escapar = (s) => String(s).replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ---------- Llamada a la API ---------- */
+async function api(ruta, params = {}) {
+  const query = new URLSearchParams(params).toString();
+  const res = await fetch(`/api/${ruta}${query ? "?" + query : ""}`);
+  if (!res.ok) {
+    const error = new Error(`Error ${res.status} en /api/${ruta}`);
+    error.status = res.status;
+    error.detalle = await res.json().catch(() => null);
+    throw error;
+  }
+  return res.json();
+}
 
 function llenarLista(select, valores, textoInicial) {
   select.innerHTML = `<option value="">${textoInicial}</option>` +
@@ -94,27 +83,29 @@ function llenarLista(select, valores, textoInicial) {
 
 /* ---------- T2: listas en cascada (marca > modelo > año) ---------- */
 async function cargarMarcas() {
-  const { data, error } = await db.from(T.vehiculos).select("marca");
-  if (error) { console.error(error); $("estado").textContent = "No se pudieron cargar las marcas."; return; }
-  llenarLista($("marca"), unicos(data.map((r) => r.marca)).sort(), "Selecciona una marca");
+  try {
+    llenarLista($("marca"), await api("marcas"), "Selecciona una marca");
+  } catch (err) {
+    console.error(err);
+    $("estado").textContent = "No se pudieron cargar las marcas.";
+  }
 }
 
 async function cargarModelos(marca) {
   llenarLista($("modelo"), [], "Selecciona un modelo");
   llenarLista($("anio"), [], "Selecciona un año");
   if (!marca) return;
-  const { data, error } = await db.from(T.vehiculos).select("modelo").eq("marca", marca);
-  if (error) { console.error(error); return; }
-  llenarLista($("modelo"), unicos(data.map((r) => r.modelo)).sort(), "Selecciona un modelo");
+  try {
+    llenarLista($("modelo"), await api("modelos", { marca }), "Selecciona un modelo");
+  } catch (err) { console.error(err); }
 }
 
 async function cargarAnios(marca, modelo) {
   llenarLista($("anio"), [], "Selecciona un año");
   if (!marca || !modelo) return;
-  const { data, error } = await db.from(T.vehiculos).select("anio")
-    .eq("marca", marca).eq("modelo", modelo);
-  if (error) { console.error(error); return; }
-  llenarLista($("anio"), unicos(data.map((r) => r.anio)).sort((a, b) => b - a), "Selecciona un año");
+  try {
+    llenarLista($("anio"), await api("anios", { marca, modelo }), "Selecciona un año");
+  } catch (err) { console.error(err); }
 }
 
 $("marca").addEventListener("change", (e) => cargarModelos(e.target.value));
@@ -138,40 +129,8 @@ function validar() {
   return valido;
 }
 
-/* ---------- T2: consulta a Supabase ---------- */
-async function consultarRepuestos({ marca, modelo, anio, repuesto }) {
-  // vehiculos y compatibilidad con !inner: solo repuestos compatibles con el vehículo elegido (RN1)
-  const seleccion = `
-    id, nombre, precio,
-    ${T.compatibilidad}!inner (
-      ${T.vehiculos}!inner ( marca, modelo, anio )
-    ),
-    ${T.inventario} ( stock, ${T.sucursales} ( nombre ) )
-  `;
-  const base = `${T.compatibilidad}.${T.vehiculos}`;
-  return db.from(T.repuestos).select(seleccion)
-    .ilike("nombre", `%${repuesto.trim()}%`)
-    .eq(`${base}.marca`, marca)
-    .eq(`${base}.modelo`, modelo)
-    .eq(`${base}.anio`, Number(anio));
-}
-
-/* Convierte la respuesta de Supabase en una estructura simple para pintar */
-function normalizar(filas) {
-  return filas.map((r) => ({
-    id: r.id,
-    nombre: r.nombre,
-    precio: r.precio, // precio del catálogo (RN2)
-    sucursales: (r[T.inventario] || []).map((i) => ({
-      nombre: i[T.sucursales]?.nombre ?? "Sucursal sin nombre",
-      stock: i.stock ?? 0 // stock por sucursal (RN3)
-    }))
-  }));
-}
-
 /* ---------- T3: resultado de búsqueda ---------- */
 function mostrarResultados(repuestos) {
-  const cont = $("resultados");
   const total = repuestos.length;
   const tarjetas = repuestos.map((r) => {
     const filas = r.sucursales.map((s) => `
@@ -191,7 +150,7 @@ function mostrarResultados(repuestos) {
         </table>
       </article>`;
   }).join("");
-  cont.innerHTML =
+  $("resultados").innerHTML =
     `<p class="resumen">${total} ${total === 1 ? "repuesto encontrado" : "repuestos encontrados"}</p>` + tarjetas;
 }
 
@@ -217,18 +176,14 @@ $("form-busqueda").addEventListener("submit", async (e) => {
   boton.disabled = true;
   $("estado").textContent = "Buscando…";
 
-  const params = {
-    marca: $("marca").value,
-    modelo: $("modelo").value,
-    anio: $("anio").value,
-    repuesto: $("repuesto").value
-  };
-
   try {
-    const { data, error } = await consultarRepuestos(params);
-    if (error) throw error;
+    const { repuestos } = await api("repuestos", {
+      marca: $("marca").value,
+      modelo: $("modelo").value,
+      anio: $("anio").value,
+      repuesto: $("repuesto").value.trim()
+    });
 
-    const repuestos = normalizar(data);
     if (repuestos.length === 0) { mostrarNoEncontrado(); return; }
 
     mostrarResultados(repuestos); // T3
@@ -237,7 +192,7 @@ $("form-busqueda").addEventListener("submit", async (e) => {
     if (!hayStock) mostrarSinStock(repuestos);
   } catch (err) {
     console.error(err);
-    mostrarErrorInventario(err);
+    mostrarErrorInventario(err); // el backend responde 503 si la BD no responde
   } finally {
     boton.disabled = false;
     $("estado").textContent = "";
