@@ -1,60 +1,6 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Buscador de repuestos</title>
-<link rel="stylesheet" href="styles.css">
-</head>
-<body>
-<header class="encabezado">
-  <div class="encabezado-interno">
-    <h1>Buscador de repuestos</h1>
-    <p class="sub">Elige el vehículo y escribe el repuesto para ver su precio y el stock por sucursal.</p>
-  </div>
-</header>
-
-<main>
-
-  <!-- ===== T2: Buscador de repuestos ===== -->
-  <form id="form-busqueda" class="buscador" novalidate>
-    <div class="campo" id="campo-marca">
-      <label for="marca">Marca</label>
-      <select id="marca" required><option value="">Selecciona una marca</option></select>
-      <span class="msg-campo" id="err-marca"></span>
-    </div>
-    <div class="campo" id="campo-modelo">
-      <label for="modelo">Modelo</label>
-      <select id="modelo" required disabled><option value="">Selecciona un modelo</option></select>
-      <span class="msg-campo" id="err-modelo"></span>
-    </div>
-    <div class="campo" id="campo-anio">
-      <label for="anio">Año</label>
-      <select id="anio" required disabled><option value="">Selecciona un año</option></select>
-      <span class="msg-campo" id="err-anio"></span>
-    </div>
-    <div class="campo ancho" id="campo-repuesto">
-      <label for="repuesto">Repuesto</label>
-      <input id="repuesto" type="text" autocomplete="off" placeholder="Por ejemplo: filtro de aceite" required>
-      <span class="msg-campo" id="err-repuesto"></span>
-    </div>
-    <div class="acciones">
-      <button type="submit" id="btn-buscar">Buscar</button>
-      <span class="estado" id="estado" role="status" aria-live="polite"></span>
-    </div>
-  </form>
-
-  <!-- ===== T3: Resultado de búsqueda ===== -->
-  <section id="resultados" aria-live="polite"></section>
-
-  <!-- Aquí se mostrarán los mensajes de T4 (sin stock), T5 (no encontrado) y T6 (error de inventario) -->
-  <section id="mensajes" aria-live="polite"></section>
-</main>
-
-<script>
 /* =====================================================================
    El navegador solo habla con NUESTRO backend (/api/...).
-   La conexión a Supabase vive en backend/main.py.
+   La conexión a Supabase vive en backend/Main.py.
    ===================================================================== */
 const $ = (id) => document.getElementById(id);
 const MONEDA = { locale: "es-SV", codigo: "USD" };
@@ -200,6 +146,3 @@ $("form-busqueda").addEventListener("submit", async (e) => {
 });
 
 cargarMarcas();
-</script>
-</body>
-</html>

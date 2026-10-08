@@ -1,2 +1,3 @@
-# This project currently uses only the Python standard library.
-# Add third-party packages here as project modules require them.
+# Las dependencias del backend viven en backend/requirements.txt.
+# Desde la raíz del proyecto puedes instalarlas con: pip install -r requirements.txt
+-r backend/requirements.txt
