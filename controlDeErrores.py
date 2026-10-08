@@ -35,6 +35,21 @@ class ErrorPrecioInvalido(ErrorInventario):
     pass
 
 
+class ErrorRepuestoNoEncontrado(ErrorInventario):
+    def __init__(self, mensaje="No se encontró el repuesto solicitado."):
+        super().__init__(mensaje)
+
+
+class ErrorProductoSinStock(ErrorInventario):
+    def __init__(self, mensaje="El repuesto no cuenta con existencias disponibles."):
+        super().__init__(mensaje)
+
+
+class ErrorStockInvalido(ErrorInventario):
+    def __init__(self, mensaje="La existencia debe ser un entero igual o mayor a 0."):
+        super().__init__(mensaje)
+
+
 def validar_busqueda(texto, filtros):
     if not texto and not filtros:
         raise ErrorBusquedaVacia("Ingrese un término de búsqueda o seleccione al menos un filtro.")
@@ -76,3 +91,15 @@ def validar_nuevo_producto(codigo, precio, repo):
         raise ErrorCodigoDuplicado(f"El código {codigo} ya existe.")
     if not isinstance(precio, (int, float)) or precio <= 0:
         raise ErrorPrecioInvalido("El precio debe ser mayor a 0.")
+
+
+def validar_repuesto_encontrado(repuesto):
+    if repuesto is None:
+        raise ErrorRepuestoNoEncontrado()
+
+
+def validar_stock_disponible(stock):
+    if isinstance(stock, bool) or not isinstance(stock, int) or stock < 0:
+        raise ErrorStockInvalido()
+    if stock == 0:
+        raise ErrorProductoSinStock()
