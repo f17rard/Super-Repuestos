@@ -1,2 +1,14 @@
+[project]
+name = "super-repuestos"
+version = "0.1.0"
+description = "Buscador de repuestos: API FastAPI (backend) y pagina estatica (frontend)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "supabase>=2.4",
+    "python-dotenv>=1.0",
+]
+
 [tool.vercel]
 entrypoint = "backend.main:app"
