@@ -22,7 +22,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
 from supabase import Client, create_client
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().with_name(".env"))
 log = logging.getLogger("buscador")
 
 # ---------------------------------------------------------------------------
