@@ -4,6 +4,14 @@ Backend del buscador de repuestos (HU-01: T2 buscador y T3 resultado de búsqued
 El navegador ya NO habla con Supabase: llama a esta API, y esta API consulta
 la base de datos con credenciales que viven solo en el servidor (.env).
 
+Esquema de la base de datos:
+  marcas      (id, nombre)
+  modelos     (id, marca_id -> marcas.id, nombre)
+  vehiculos   (id, modelo_id -> modelos.id, anio)
+  repuestos   (id, nombre, descripcion, precio_base, vehiculo_id -> vehiculos.id)
+  sucursales  (id, nombre, direccion)
+  inventario  (id, repuesto_id -> repuestos.id, sucursal_id -> sucursales.id, stock)
+
 Endpoints:
   GET /api/marcas
   GET /api/modelos?marca=
@@ -26,13 +34,14 @@ load_dotenv(Path(__file__).resolve().with_name(".env"))
 log = logging.getLogger("buscador")
 
 # ---------------------------------------------------------------------------
-# Nombres de tablas. Si T1 (Machado) los nombra distinto, se cambian en .env
+# Nombres de tablas. Si se nombran distinto, se pueden cambiar en .env
 # ---------------------------------------------------------------------------
-T_VEHICULOS = os.getenv("TABLA_VEHICULOS", "vehiculos")              # id, marca, modelo, anio
-T_REPUESTOS = os.getenv("TABLA_REPUESTOS", "repuestos")              # id, nombre, precio
-T_COMPAT = os.getenv("TABLA_COMPATIBILIDAD", "repuesto_vehiculo")    # repuesto_id, vehiculo_id
-T_INVENTARIO = os.getenv("TABLA_INVENTARIO", "inventario")           # repuesto_id, sucursal_id, stock
-T_SUCURSALES = os.getenv("TABLA_SUCURSALES", "sucursales")           # id, nombre
+T_MARCAS = os.getenv("TABLA_MARCAS", "marcas")                  # id, nombre
+T_MODELOS = os.getenv("TABLA_MODELOS", "modelos")               # id, marca_id, nombre
+T_VEHICULOS = os.getenv("TABLA_VEHICULOS", "vehiculos")         # id, modelo_id, anio
+T_REPUESTOS = os.getenv("TABLA_REPUESTOS", "repuestos")         # id, nombre, descripcion, precio_base, vehiculo_id
+T_INVENTARIO = os.getenv("TABLA_INVENTARIO", "inventario")      # id, repuesto_id, sucursal_id, stock
+T_SUCURSALES = os.getenv("TABLA_SUCURSALES", "sucursales")      # id, nombre, direccion
 
 PAGINA = 1000  # filas por petición a Supabase (su límite por defecto)
 
@@ -44,8 +53,8 @@ app = FastAPI(title="API Buscador de repuestos")
 # ---------------------------------------------------------------------------
 @lru_cache
 def get_db() -> Client:
-    url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_KEY")
+    url = os.getenv("https://wrpkjszpuwzobpsvxfhk.supabase.co")
+    key = os.getenv("sb_publishable_G2JuDJlBxyASk0gYrcpXog_Pxw280C2 ")
     if not url or not key:
         raise RuntimeError("Faltan SUPABASE_URL o SUPABASE_KEY en el archivo .env")
     return create_client(url, key)
@@ -87,21 +96,24 @@ def escapar_like(texto: str) -> str:
 @app.get("/api/marcas")
 def listar_marcas() -> list[str]:
     try:
-        filas = traer_todo(lambda: get_db().table(T_VEHICULOS).select("marca"))
+        filas = traer_todo(lambda: get_db().table(T_MARCAS).select("nombre"))
     except Exception as exc:
         raise error_bd(exc)
-    return sorted({f["marca"] for f in filas})
+    return sorted({f["nombre"] for f in filas})
 
 
 @app.get("/api/modelos")
 def listar_modelos(marca: str = Query(..., min_length=1)) -> list[str]:
     try:
+        # modelos -> marcas (!inner filtra solo los modelos de la marca elegida)
         filas = traer_todo(
-            lambda: get_db().table(T_VEHICULOS).select("modelo").eq("marca", marca)
+            lambda: get_db().table(T_MODELOS)
+            .select(f"nombre, {T_MARCAS}!inner(nombre)")
+            .eq(f"{T_MARCAS}.nombre", marca)
         )
     except Exception as exc:
         raise error_bd(exc)
-    return sorted({f["modelo"] for f in filas})
+    return sorted({f["nombre"] for f in filas})
 
 
 @app.get("/api/anios")
@@ -110,9 +122,12 @@ def listar_anios(
     modelo: str = Query(..., min_length=1),
 ) -> list[int]:
     try:
+        # vehiculos -> modelos -> marcas
         filas = traer_todo(
-            lambda: get_db().table(T_VEHICULOS).select("anio")
-            .eq("marca", marca).eq("modelo", modelo)
+            lambda: get_db().table(T_VEHICULOS)
+            .select(f"anio, {T_MODELOS}!inner(nombre, {T_MARCAS}!inner(nombre))")
+            .eq(f"{T_MODELOS}.nombre", modelo)
+            .eq(f"{T_MODELOS}.{T_MARCAS}.nombre", marca)
         )
     except Exception as exc:
         raise error_bd(exc)
@@ -133,21 +148,24 @@ def buscar_repuestos(
     if not texto:
         raise HTTPException(status_code=422, detail="El nombre del repuesto es obligatorio")
 
-    # !inner => solo repuestos compatibles con el vehículo elegido (RN1)
+    # !inner => solo repuestos del vehículo elegido (RN1).
+    # repuestos -> vehiculos -> modelos -> marcas, e inventario -> sucursales
     seleccion = f"""
-        id, nombre, precio,
-        {T_COMPAT}!inner ( {T_VEHICULOS}!inner ( marca, modelo, anio ) ),
-        {T_INVENTARIO} ( stock, {T_SUCURSALES} ( nombre ) )
+        id, nombre, descripcion, precio_base,
+        {T_VEHICULOS}!inner (
+            anio,
+            {T_MODELOS}!inner ( nombre, {T_MARCAS}!inner ( nombre ) )
+        ),
+        {T_INVENTARIO} ( stock, {T_SUCURSALES} ( nombre, direccion ) )
     """
-    base = f"{T_COMPAT}.{T_VEHICULOS}"
 
     try:
         filas = (
             get_db().table(T_REPUESTOS).select(seleccion)
             .ilike("nombre", f"%{escapar_like(texto)}%")
-            .eq(f"{base}.marca", marca)
-            .eq(f"{base}.modelo", modelo)
-            .eq(f"{base}.anio", anio)
+            .eq(f"{T_VEHICULOS}.anio", anio)
+            .eq(f"{T_VEHICULOS}.{T_MODELOS}.nombre", modelo)
+            .eq(f"{T_VEHICULOS}.{T_MODELOS}.{T_MARCAS}.nombre", marca)
             .execute()
             .data
         )
@@ -158,10 +176,12 @@ def buscar_repuestos(
         {
             "id": f["id"],
             "nombre": f["nombre"],
-            "precio": f["precio"],  # precio del catálogo (RN2)
-            "sucursales": [         # stock por sucursal (RN3)
+            "descripcion": f.get("descripcion"),
+            "precio": f["precio_base"],  # precio del catálogo (RN2)
+            "sucursales": [              # stock por sucursal (RN3)
                 {
                     "nombre": (i.get(T_SUCURSALES) or {}).get("nombre", "Sucursal sin nombre"),
+                    "direccion": (i.get(T_SUCURSALES) or {}).get("direccion"),
                     "stock": i.get("stock") or 0,
                 }
                 for i in (f.get(T_INVENTARIO) or [])
