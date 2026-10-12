@@ -49,7 +49,7 @@ jobs:
             backend/requirements.txt
             requirements-dev.txt
 
-      - run: pip install -r requirements-dev.txt
+      - run: pip install -r requirements.txt
 
       - name: Lint y sintaxis
         run: |
