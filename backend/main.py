@@ -24,7 +24,6 @@ import logging
 import os
 from functools import lru_cache
 from pathlib import Path
-
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
@@ -53,8 +52,8 @@ app = FastAPI(title="API Buscador de repuestos")
 # ---------------------------------------------------------------------------
 @lru_cache
 def get_db() -> Client:
-    url = os.getenv("https://wrpkjszpuwzobpsvxfhk.supabase.co")
-    key = os.getenv("sb_publishable_G2JuDJlBxyASk0gYrcpXog_Pxw280C2 ")
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_KEY")
     if not url or not key:
         raise RuntimeError("Faltan SUPABASE_URL o SUPABASE_KEY en el archivo .env")
     return create_client(url, key)
