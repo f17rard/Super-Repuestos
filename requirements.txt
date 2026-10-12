@@ -1,3 +1,4 @@
-# Las dependencias del backend viven en backend/requirements.txt.
-# Desde la raíz del proyecto puedes instalarlas con: pip install -r requirements.txt
--r backend/requirements.txt
+fastapi>=0.110
+uvicorn[standard]>=0.29
+supabase>=2.4
+python-dotenv>=1.0
