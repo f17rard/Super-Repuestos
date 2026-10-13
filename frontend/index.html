@@ -15,8 +15,6 @@
 </header>
 
 <main>
-
-  <!-- ===== T2: Buscador de repuestos ===== -->
   <form id="form-busqueda" class="buscador" novalidate>
     <div class="campo" id="campo-marca">
       <label for="marca">Marca</label>
@@ -25,12 +23,12 @@
     </div>
     <div class="campo" id="campo-modelo">
       <label for="modelo">Modelo</label>
-      <select id="modelo" required disabled><option value="">Selecciona un modelo</option></select>
+      <select id="modelo" required><option value="">Selecciona un modelo</option></select>
       <span class="msg-campo" id="err-modelo"></span>
     </div>
     <div class="campo" id="campo-anio">
       <label for="anio">Año</label>
-      <select id="anio" required disabled><option value="">Selecciona un año</option></select>
+      <select id="anio" required><option value="">Selecciona un año</option></select>
       <span class="msg-campo" id="err-anio"></span>
     </div>
     <div class="campo ancho" id="campo-repuesto">
@@ -43,12 +41,6 @@
       <span class="estado" id="estado" role="status" aria-live="polite"></span>
     </div>
   </form>
-
-  <select id="marca"><option value="">Todas las marcas</option></select>
-  <select id="modelo" disabled><option value="">Todos los modelos</option></select>
-  <select id="anio" disabled><option value="">Todos los años</option></select>
-
-  <input id="repuesto" type="text" autocomplete="off" placeholder="Nombre, código o descripción: filtro de aceite, 0986494030" required>
 </main>
 
 <script src="js/api.js" defer></script>
