@@ -22,6 +22,7 @@ Además sirve la carpeta ../frontend, así la página y la API comparten origen.
 """
 import logging
 import os
+import re
 from functools import lru_cache
 from pathlib import Path
 from dotenv import load_dotenv
@@ -53,7 +54,7 @@ app = FastAPI(title="API Buscador de repuestos")
 @lru_cache
 def get_db() -> Client:
     url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    key = os.getenv("SUPABASE_KEY")
     if not url or not key:
         raise RuntimeError("Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en el archivo .env")
     return create_client(url, key)
@@ -134,47 +135,82 @@ def listar_anios(
 
 
 # ---------------------------------------------------------------------------
-# T2 + T3: búsqueda de repuestos con precio y stock por sucursal
+# Búsqueda por palabra clave, código o descripción (reemplaza busqueda T2 +T3)
 # ---------------------------------------------------------------------------
+# Columnas donde se busca el texto. Cuando exista la columna del código del
+# repuesto, se agrega aquí:  CAMPOS_BUSQUEDA=nombre,descripcion,codigo
+CAMPOS_BUSQUEDA = [c.strip() for c in os.getenv("CAMPOS_BUSQUEDA", "nombre,descripcion").split(",") if c.strip()]
+PESO_CAMPO = {"nombre": 3, "codigo": 3, "descripcion": 1}  # para ordenar por relevancia
+MAX_TERMINOS = 6
+
+
+def terminos_de(texto: str) -> list[str]:
+    """Divide el texto en palabras. Quita caracteres que rompen el filtro or() de PostgREST."""
+    limpio = re.sub(r'[,()"\\]', " ", texto)
+    return limpio.split()[:MAX_TERMINOS]
+
+
+def condicion_or(termino: str) -> str:
+    """'campo1.ilike."%t%",campo2.ilike."%t%"' -> la palabra aparece en ALGUNO de los campos."""
+    t = termino.replace("%", "\\\\%").replace("_", "\\\\_")  # % y _ literales
+    return ",".join(f'{campo}.ilike."%{t}%"' for campo in CAMPOS_BUSQUEDA)
+
+
+def relevancia(fila: dict, terminos: list[str]) -> int:
+    puntos = 0
+    for t in (x.lower() for x in terminos):
+        for campo in CAMPOS_BUSQUEDA:
+            if t in str(fila.get(campo) or "").lower():
+                puntos += PESO_CAMPO.get(campo, 1)
+    return puntos
+
+
 @app.get("/api/repuestos")
 def buscar_repuestos(
-    marca: str = Query(..., min_length=1),
-    modelo: str = Query(..., min_length=1),
-    anio: int = Query(...),
-    repuesto: str = Query(..., min_length=1),
+    repuesto: str = Query("", description="Palabra clave, código o descripción"),
+    marca: str | None = Query(None),
+    modelo: str | None = Query(None),
+    anio: int | None = Query(None),
 ) -> dict:
-    texto = repuesto.strip()
-    if not texto:
-        raise HTTPException(status_code=422, detail="El nombre del repuesto es obligatorio")
+    terminos = terminos_de(repuesto)
+    hay_vehiculo = bool(marca or modelo or anio)
 
-    # !inner => solo repuestos del vehículo elegido (RN1).
-    # repuestos -> vehiculos -> modelos -> marcas, e inventario -> sucursales
+    if not terminos and not hay_vehiculo:
+        raise HTTPException(status_code=422, detail="Escribe un repuesto o selecciona un vehículo")
+
+    # !inner solo si se filtra por vehículo (RN1); sin filtro, no se descartan repuestos
+    inner = "!inner" if hay_vehiculo else ""
+    extras = "".join(f", {c}" for c in CAMPOS_BUSQUEDA if c not in ("nombre", "descripcion"))
     seleccion = f"""
-        id, nombre, descripcion, precio_base,
-        {T_VEHICULOS}!inner (
+        id, nombre, descripcion, precio_base{extras},
+        {T_VEHICULOS}{inner} (
             anio,
-            {T_MODELOS}!inner ( nombre, {T_MARCAS}!inner ( nombre ) )
+            {T_MODELOS}{inner} ( nombre, {T_MARCAS}{inner} ( nombre ) )
         ),
         {T_INVENTARIO} ( stock, {T_SUCURSALES} ( nombre, direccion ) )
     """
 
     try:
-        filas = (
-            get_db().table(T_REPUESTOS).select(seleccion)
-            .ilike("nombre", f"%{escapar_like(texto)}%")
-            .eq(f"{T_VEHICULOS}.anio", anio)
-            .eq(f"{T_VEHICULOS}.{T_MODELOS}.nombre", modelo)
-            .eq(f"{T_VEHICULOS}.{T_MODELOS}.{T_MARCAS}.nombre", marca)
-            .execute()
-            .data
-        )
+        consulta = get_db().table(T_REPUESTOS).select(seleccion)
+        for t in terminos:                  # cada palabra debe aparecer (AND)...
+            consulta = consulta.or_(condicion_or(t))  # ...en nombre, código o descripción (OR)
+        if anio:
+            consulta = consulta.eq(f"{T_VEHICULOS}.anio", anio)
+        if modelo:
+            consulta = consulta.eq(f"{T_VEHICULOS}.{T_MODELOS}.nombre", modelo)
+        if marca:
+            consulta = consulta.eq(f"{T_VEHICULOS}.{T_MODELOS}.{T_MARCAS}.nombre", marca)
+        filas = consulta.execute().data
     except Exception as exc:
         raise error_bd(exc)
+
+    filas.sort(key=lambda f: relevancia(f, terminos), reverse=True)
 
     repuestos = [
         {
             "id": f["id"],
             "nombre": f["nombre"],
+            "codigo": f.get("codigo"),
             "descripcion": f.get("descripcion"),
             "precio": f["precio_base"],  # precio del catálogo (RN2)
             "sucursales": [              # stock por sucursal (RN3)
@@ -188,10 +224,7 @@ def buscar_repuestos(
         }
         for f in filas
     ]
-    # Lista vacía = no se encontró (el mensaje de T5 lo decide el frontend)
     return {"total": len(repuestos), "repuestos": repuestos}
-
-
 # ---------------------------------------------------------------------------
 # Sirve la página (debe ir al final, después de las rutas /api)
 # ---------------------------------------------------------------------------
