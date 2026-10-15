@@ -149,6 +149,7 @@ def buscar_repuestos(
 
     # !inner => solo repuestos del vehículo elegido (RN1).
     # repuestos -> vehiculos -> modelos -> marcas, e inventario -> sucursales
+    
     seleccion = f"""
         id, nombre, descripcion, precio_base,
         {T_VEHICULOS}!inner (
@@ -161,7 +162,9 @@ def buscar_repuestos(
     try:
         filas = (
             get_db().table(T_REPUESTOS).select(seleccion)
-            .ilike("nombre", f"%{escapar_like(texto)}%")
+            .or_(
+    f"nombre.ilike.%{escapar_like(texto)}%,descripcion.ilike.%{escapar_like(texto)}%"
+)
             .eq(f"{T_VEHICULOS}.anio", anio)
             .eq(f"{T_VEHICULOS}.{T_MODELOS}.nombre", modelo)
             .eq(f"{T_VEHICULOS}.{T_MODELOS}.{T_MARCAS}.nombre", marca)
