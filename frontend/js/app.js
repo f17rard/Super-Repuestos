@@ -116,7 +116,7 @@ function mostrarErrorInventario(err)  { /* T6 (José Luis): "No se pudo consulta
 $("form-busqueda").addEventListener("submit", async (e) => {
   e.preventDefault();
   limpiarPantalla();
-  if (!validar()) return;
+  if (!validar()) { window.Visualizacion?.avisarTerminoVacio(); return; }
 
   const boton = $("btn-buscar");
   boton.disabled = true;
@@ -134,6 +134,7 @@ $("form-busqueda").addEventListener("submit", async (e) => {
 
     mostrarResultados(repuestos); // T3
 
+    window.Visualizacion?.enriquecer(repuestos, { marca: $("marca").value });
     const hayStock = repuestos.some((r) => r.sucursales.some((s) => s.stock > 0));
     if (!hayStock) mostrarSinStock(repuestos);
   } catch (err) {
