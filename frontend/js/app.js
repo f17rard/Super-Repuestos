@@ -22,7 +22,32 @@ async function api(ruta, params = {}) {
     error.detalle = await res.json().catch(() => null);
     throw error;
   }
-  return res.json();
+  try {
+    return await res.json();
+  } catch {
+    // 200 pero no es JSON: casi siempre es una página HTML (la API no está desplegada ahí)
+    const error = new Error(`Respuesta no válida en /api/${ruta}`);
+    error.status = res.status;
+    error.invalida = true;
+    throw error;
+  }
+}
+
+/* Aviso visible (en rojo) bajo el buscador */
+function avisar(mensaje) {
+  $("msg-busqueda").textContent = mensaje;
+}
+
+/* Traduce un error de la API a un mensaje que explique qué pasó */
+function describirError(err) {
+  if (err.invalida) {
+    return "La ruta /api no devolvió datos de la API (respuesta que no es JSON). Probablemente el backend no está desplegado en esta dirección.";
+  }
+  if (err.status === undefined) return "No se pudo conectar con el servidor. Revisa tu conexión.";
+  if (err.status === 404) return "No se encontró el servicio de búsqueda (error 404). El backend no está disponible en esta dirección.";
+  const d = err.detalle && err.detalle.detail;
+  const detalle = typeof d === "string" ? d : d && d.mensaje;
+  return `${detalle || "No se pudo completar la solicitud"} (error ${err.status}).`;
 }
 
 function llenarLista(select, valores, textoInicial) {
@@ -37,7 +62,7 @@ async function cargarMarcas() {
     llenarLista($("marca"), await api("marcas"), "Selecciona");
   } catch (err) {
     console.error(err);
-    $("estado").textContent = "No se pudieron cargar las marcas.";
+    avisar("No se pudieron cargar las marcas. " + describirError(err));
   }
 }
 
@@ -47,7 +72,10 @@ async function cargarModelos(marca) {
   if (!marca) return;
   try {
     llenarLista($("modelo"), await api("modelos", { marca }), "Selecciona");
-  } catch (err) { console.error(err); }
+  } catch (err) {
+    console.error(err);
+    avisar("No se pudieron cargar los modelos. " + describirError(err));
+  }
 }
 
 async function cargarAnios(marca, modelo) {
@@ -55,7 +83,10 @@ async function cargarAnios(marca, modelo) {
   if (!marca || !modelo) return;
   try {
     llenarLista($("anio"), await api("anios", { marca, modelo }), "Selecciona");
-  } catch (err) { console.error(err); }
+  } catch (err) {
+    console.error(err);
+    avisar("No se pudieron cargar los años. " + describirError(err));
+  }
 }
 
 $("marca").addEventListener("change", (e) => cargarModelos(e.target.value));
@@ -276,12 +307,20 @@ function marcarCategoria(texto) {
   });
 }
 
+/* El campo muestra la palabra completa (data-q); la consulta usa la raíz (data-buscar),
+   así "transmisión" también encuentra "transmision" y "frenos" encuentra "freno". */
+let atajo = null;
+
 $("categorias").addEventListener("click", (e) => {
   const boton = e.target.closest(".category-item");
   if (!boton) return;
-  $("repuesto").value = boton.dataset.q;
+  atajo = { texto: boton.dataset.q, buscar: boton.dataset.buscar || boton.dataset.q };
+  $("repuesto").value = atajo.texto;
   $("form-busqueda").requestSubmit();
 });
+
+// Si el mecánico edita el texto, deja de ser un atajo
+$("repuesto").addEventListener("input", () => { atajo = null; });
 
 /* ---------- Flujo del botón "Buscar" (también Enter en el campo de texto) ---------- */
 function setCargando(cargando) {
@@ -296,12 +335,14 @@ $("form-busqueda").addEventListener("submit", async (e) => {
   if (!validar()) return;
 
   const texto = $("repuesto").value.trim();
+  const usaAtajo = atajo && normalizar(texto) === normalizar(atajo.texto);
+  const consulta = usaAtajo ? atajo.buscar : texto; // lo que se envía y se compara
   const marca = $("marca").value;
   const vehiculo = marca ? { marca, modelo: $("modelo").value, anio: $("anio").value } : null;
 
   // Solo se envía lo que el mecánico llenó
   const params = {};
-  if (texto) params.repuesto = texto;
+  if (consulta) params.repuesto = consulta;
   if (vehiculo) Object.assign(params, vehiculo);
 
   marcarCategoria(texto);
@@ -311,7 +352,7 @@ $("form-busqueda").addEventListener("submit", async (e) => {
     const { repuestos } = await api("repuestos", params);
 
     // Solo coincidencias con lo escrito (el backend ya filtra; aquí se garantiza)
-    const terminos = terminosDe(texto);
+    const terminos = terminosDe(consulta);
     const coinciden = repuestos.filter((r) => coincide(r, terminos));
 
     busqueda = { texto, terminos, vehiculo, repuestos: coinciden };
@@ -338,6 +379,7 @@ $("form-busqueda").addEventListener("submit", async (e) => {
     $("zona-resultados").scrollIntoView({ behavior: reducir ? "auto" : "smooth", block: "start" });
   } catch (err) {
     console.error(err);
+    avisar(describirError(err)); // visible aunque T6 aún no esté implementado
     $("zona-resultados").hidden = false; // para que se vea el mensaje de T6
     mostrarErrorInventario(err); // el backend responde 503 si la BD no responde
   } finally {
