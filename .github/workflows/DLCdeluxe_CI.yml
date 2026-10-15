@@ -49,7 +49,7 @@ jobs:
             backend/requirements.txt
             requirements-dev.txt
 
-      - run: pip install -r requirements.txt
+      - run: pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Lint y sintaxis
         run: |
@@ -60,9 +60,9 @@ jobs:
       - name: Pruebas con cobertura
         run: pytest --cov --cov-report=term-missing
 
-      - name: "Humo: Main.py vive en backend/, por eso --app-dir"
+      - name: "Humo: main.py vive en backend/, por eso --app-dir"
         run: |
-          uvicorn Main:app --app-dir backend --port 8000 &
+          uvicorn main:app --app-dir backend --port 8000 &
           for i in $(seq 1 20); do
             curl -sf http://127.0.0.1:8000/openapi.json > openapi.json && break
             sleep 1
