@@ -1,50 +1,153 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Buscador de carros</title>
-<link rel="stylesheet" href="css/styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Súper Repuestos El Salvador - Buscador</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- Iconos -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-<header class="encabezado">
-  <div class="encabezado-interno">
-    <h1>Buscador de repuestos</h1>
-    <p class="sub">Elige el vehículo y escribe el repuesto para ver su precio y el stock por sucursal.</p>
-  </div>
-</header>
 
-<main>
-  <form id="form-busqueda" class="buscador" novalidate>
-    <div class="campo" id="campo-marca">
-      <label for="marca">Marca</label>
-      <select id="marca" required><option value="">Selecciona una marca</option></select>
-      <span class="msg-campo" id="err-marca"></span>
+  <!-- ===== Encabezado ===== -->
+  <header class="navbar">
+    <div class="nav-left">
+      <a href="#" class="brand-logo">
+        <span class="logo-box">S</span>
+        <div class="logo-titles">
+          <span class="logo-main">SÚPER REPUESTOS</span>
+          <span class="logo-sub">EL SALVADOR</span>
+        </div>
+      </a>
+      <nav class="nav-menu" aria-label="Principal">
+        <a href="#" class="active">Inicio</a>
+        <a href="#">Catálogo</a>
+        <a href="#">Marcas</a>
+        <a href="#"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Sucursales</a>
+      </nav>
     </div>
-    <div class="campo" id="campo-modelo">
-      <label for="modelo">Modelo</label>
-      <select id="modelo" required><option value="">Selecciona un modelo</option></select>
-      <span class="msg-campo" id="err-modelo"></span>
-    </div>
-    <div class="campo" id="campo-anio">
-      <label for="anio">Año</label>
-      <select id="anio" required><option value="">Selecciona un año</option></select>
-      <span class="msg-campo" id="err-anio"></span>
-    </div>
-    <div class="campo ancho" id="campo-repuesto">
-      <label for="repuesto">Repuesto</label>
-      <input id="repuesto" type="text" autocomplete="off" placeholder="Por ejemplo: filtro de aceite" required>
-      <span class="msg-campo" id="err-repuesto"></span>
-    </div>
-    <div class="acciones">
-      <button type="submit" id="btn-buscar">Buscar</button>
-      <span class="estado" id="estado" role="status" aria-live="polite"></span>
-    </div>
-  </form>
-</main>
+  </header>
 
-<script src="js/api.js" defer></script>
-<script src="js/busqueda.js" defer></script>
-<script src="js/app.js" defer></script>
+  <!-- ===== Buscador: texto + vehículo (un solo formulario) ===== -->
+  <section class="hero-section">
+    <div class="hero-container">
+      <h1 class="hero-title">
+        ENCUENTRA EL REPUESTO<br>
+        <span class="text-red">QUE NECESITAS</span>
+      </h1>
+      <p class="hero-subtitle">Busca por nombre, código o descripción, o selecciona tu vehículo.</p>
+
+      <form id="form-busqueda" novalidate>
+        <!-- Búsqueda por texto -->
+        <div class="search-bar" id="campo-repuesto">
+          <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
+          <input id="repuesto" type="text" autocomplete="off"
+                 aria-label="Buscar repuesto por nombre, código o descripción"
+                 placeholder="Ej: pastillas de freno, filtro de aceite...">
+          <button type="submit" id="btn-buscar" class="btn-primary-red">Buscar</button>
+        </div>
+
+        <!-- Selector de vehículo (opcional) -->
+        <div class="vehicle-picker-card">
+          <div class="picker-header">
+            <i class="fa-solid fa-car" aria-hidden="true"></i>
+            <span>BUSCA POR VEHÍCULO</span>
+          </div>
+          <div class="picker-fields">
+            <div class="field-item" id="campo-marca">
+              <label for="marca">MARCA</label>
+              <select id="marca"><option value="">Selecciona</option></select>
+            </div>
+            <div class="field-item" id="campo-modelo">
+              <label for="modelo">MODELO</label>
+              <select id="modelo" disabled><option value="">Selecciona</option></select>
+            </div>
+            <div class="field-item" id="campo-anio">
+              <label for="anio">AÑO</label>
+              <select id="anio" disabled><option value="">Selecciona</option></select>
+            </div>
+            <button type="submit" id="btn-buscar-vehiculo" class="btn-primary-red picker-btn">
+              <i class="fa-solid fa-filter" aria-hidden="true"></i> Buscar
+            </button>
+          </div>
+        </div>
+
+        <p class="msg-busqueda" id="msg-busqueda" role="alert"></p>
+        <p class="estado" id="estado" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- ===== Atajos de búsqueda por categoría ===== -->
+  <section class="categories-bar">
+    <div class="section-container">
+      <h2 class="section-heading">CATEGORÍAS PRINCIPALES</h2>
+      <div class="categories-grid" id="categorias">
+        <button type="button" class="category-item" data-q="motor" aria-pressed="false">
+          <i class="fa-solid fa-oil-can" aria-hidden="true"></i><span>Motor</span>
+        </button>
+        <button type="button" class="category-item" data-q="eléctric" aria-pressed="false">
+          <i class="fa-solid fa-car-battery" aria-hidden="true"></i><span>Eléctrico</span>
+        </button>
+        <button type="button" class="category-item" data-q="freno" aria-pressed="false">
+          <i class="fa-solid fa-compact-disc" aria-hidden="true"></i><span>Frenos</span>
+        </button>
+        <button type="button" class="category-item" data-q="transmisi" aria-pressed="false">
+          <i class="fa-solid fa-gears" aria-hidden="true"></i><span>Transmisión</span>
+        </button>
+        <button type="button" class="category-item" data-q="suspensi" aria-pressed="false">
+          <i class="fa-solid fa-arrows-up-down" aria-hidden="true"></i><span>Suspensión</span>
+        </button>
+        <button type="button" class="category-item" data-q="aire" aria-pressed="false">
+          <i class="fa-solid fa-snowflake" aria-hidden="true"></i><span>Aire Acond.</span>
+        </button>
+        <button type="button" class="category-item" data-q="accesorio" aria-pressed="false">
+          <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i><span>Accesorios</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Filtros + resultados (se muestra al primer intento de búsqueda) ===== -->
+  <main class="main-layout section-container" id="zona-resultados" hidden>
+
+    <aside class="sidebar-filters" id="filtros" hidden>
+      <div class="filters-top">
+        <h3>Filtros</h3>
+        <button type="button" class="clear-link" id="limpiar-filtros">Limpiar filtros</button>
+      </div>
+      <div id="grupos-filtros"></div>
+    </aside>
+
+    <div class="results-area">
+      <div class="results-header">
+        <div>
+          <h2 class="query-title" id="titulo-resultados"></h2>
+          <p class="results-count" id="conteo"></p>
+        </div>
+        <div class="sort-box" id="caja-orden" hidden>
+          <label for="orden">Ordenar por:</label>
+          <select id="orden">
+            <option value="relevancia">Más relevantes</option>
+            <option value="precio_asc">Menor precio</option>
+            <option value="precio_desc">Mayor precio</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- T3: resultado de búsqueda -->
+      <section id="resultados" class="products-grid" aria-live="polite"></section>
+
+      <!-- Mensajes de T4 (sin stock), T5 (no encontrado) y T6 (error de inventario) -->
+      <section id="mensajes" aria-live="polite"></section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>Súper Repuestos El Salvador · Catálogo de repuestos</p>
+  </footer>
+
+  <script src="js/app.js" defer></script>
 </body>
 </html>
