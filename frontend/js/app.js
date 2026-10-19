@@ -22,32 +22,7 @@ async function api(ruta, params = {}) {
     error.detalle = await res.json().catch(() => null);
     throw error;
   }
-  try {
-    return await res.json();
-  } catch {
-    // 200 pero no es JSON: casi siempre es una página HTML (la API no está desplegada ahí)
-    const error = new Error(`Respuesta no válida en /api/${ruta}`);
-    error.status = res.status;
-    error.invalida = true;
-    throw error;
-  }
-}
-
-/* Aviso visible (en rojo) bajo el buscador */
-function avisar(mensaje) {
-  $("msg-busqueda").textContent = mensaje;
-}
-
-/* Traduce un error de la API a un mensaje que explique qué pasó */
-function describirError(err) {
-  if (err.invalida) {
-    return "La ruta /api no devolvió datos de la API (respuesta que no es JSON). Probablemente el backend no está desplegado en esta dirección.";
-  }
-  if (err.status === undefined) return "No se pudo conectar con el servidor. Revisa tu conexión.";
-  if (err.status === 404) return "No se encontró el servicio de búsqueda (error 404). El backend no está disponible en esta dirección.";
-  const d = err.detalle && err.detalle.detail;
-  const detalle = typeof d === "string" ? d : d && d.mensaje;
-  return `${detalle || "No se pudo completar la solicitud"} (error ${err.status}).`;
+  return res.json();
 }
 
 function llenarLista(select, valores, textoInicial) {
@@ -56,41 +31,140 @@ function llenarLista(select, valores, textoInicial) {
   select.disabled = valores.length === 0;
 }
 
+<<<<<<< Updated upstream
 /* ---------- Listas en cascada (marca > modelo > año) ---------- */
+=======
+/* ---------- Rediseño (HU-01): cinta de marcas y botón con imán ----------
+   La cinta repite las marcas que ya trae /api/marcas (solo adorno, no hace peticiones).
+   El imán mueve el botón hacia el puntero con transform, solo con ratón y sin "reduce motion". */
+const MARCAS_MINIMAS_CINTA = 12;
+const SEGUNDOS_POR_MARCA = 3;
+const FUERZA_IMAN = 0.2;
+
+function pintarCinta() {
+  const marcas = [...$("marca").options].filter((o) => o.value).map((o) => o.text);
+  if (!marcas.length) { $("cinta-marcas").innerHTML = ""; return; }
+  let mitad = [...marcas];
+  while (mitad.length < MARCAS_MINIMAS_CINTA) mitad = mitad.concat(marcas);
+  const items = mitad.map((m) => `<span class="cinta-item">${escapar(m)}</span>`).join("");
+  // Dos mitades iguales: la animación recorre -50% y el bucle no se nota
+  $("cinta-marcas").innerHTML = `<div class="cinta-pista">${items}${items}</div>`;
+  $("cinta-marcas").style.setProperty("--cinta-duracion", `${mitad.length * SEGUNDOS_POR_MARCA}s`);
+}
+
+function activarIman(boton) {
+  const permitido = window.matchMedia("(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)");
+  if (!permitido.matches) return;
+  boton.addEventListener("pointermove", (e) => {
+    const caja = boton.getBoundingClientRect();
+    boton.style.setProperty("--iman-x", `${(e.clientX - caja.left - caja.width / 2) * FUERZA_IMAN}px`);
+    boton.style.setProperty("--iman-y", `${(e.clientY - caja.top - caja.height / 2) * FUERZA_IMAN}px`);
+  });
+  boton.addEventListener("pointerleave", () => {
+    boton.style.removeProperty("--iman-x");
+    boton.style.removeProperty("--iman-y");
+  });
+}
+
+/* ---------- Rediseño (HU-01): explorador de vehículo ----------
+   Muestra como botones las opciones del siguiente campo vacío (marca, modelo o año)
+   para elegir con un toque. Los selects siguen siendo la fuente de verdad: el
+   explorador solo los lee y les dispara "change", así no cambia ningún flujo de T2. */
+const PASOS_EXPLORADOR = [
+  { id: "marca", etiqueta: "marca", titulo: "Elige la marca" },
+  { id: "modelo", etiqueta: "modelo", titulo: "Elige el modelo" },
+  { id: "anio", etiqueta: "año", titulo: "Elige el año" }
+];
+const ESQUELETOS_ATAJOS = 12;
+const ESQUELETOS_RESULTADOS = 3;
+
+function pintarExplorador(cargando = false) {
+  const paso = PASOS_EXPLORADOR.find((p) => !$(p.id).value);
+  $("ruta-vehiculo").innerHTML = PASOS_EXPLORADOR.filter((p) => $(p.id).value).map((p) => `
+    <button type="button" class="ruta-paso" data-paso="${p.id}" aria-label="Cambiar ${p.etiqueta}: ${escapar($(p.id).value)}">
+      ${escapar($(p.id).value)}
+    </button>`).join("");
+
+  if (!paso) {
+    $("titulo-explorador").textContent = "Vehículo elegido";
+    $("atajos").innerHTML = ""; // vehículo completo: solo queda la ruta elegida
+    return;
+  }
+
+  $("titulo-explorador").textContent = paso.titulo;
+  if (cargando) {
+    $("atajos").innerHTML = `<span class="esqueleto atajo-esqueleto"></span>`.repeat(ESQUELETOS_ATAJOS);
+    return;
+  }
+
+  const opciones = [...$(paso.id).options].filter((o) => o.value);
+  $("atajos").innerHTML = opciones.length
+    ? opciones.map((o) =>
+        `<button type="button" class="atajo" data-paso="${paso.id}" data-valor="${escapar(o.value)}">${escapar(o.text)}</button>`
+      ).join("")
+    : `<p class="atajos-vacio">No hay opciones para mostrar por ahora.</p>`;
+}
+
+$("explorador").addEventListener("click", (e) => {
+  const boton = e.target.closest("button[data-paso]");
+  if (!boton) return;
+  const eligiendo = boton.classList.contains("atajo");
+  const select = $(boton.dataset.paso);
+  select.value = eligiendo ? boton.dataset.valor : "";
+  select.dispatchEvent(new Event("change"));
+  // Con el año elegido el vehículo está completo: el cursor pasa al repuesto
+  if (eligiendo && boton.dataset.paso === "anio") $("repuesto").focus();
+});
+
+/* ---------- T2: listas en cascada (marca > modelo > año) ---------- */
+>>>>>>> Stashed changes
 async function cargarMarcas() {
+  pintarExplorador(true);
   try {
     llenarLista($("marca"), await api("marcas"), "Selecciona");
   } catch (err) {
     console.error(err);
-    avisar("No se pudieron cargar las marcas. " + describirError(err));
+    $("estado").textContent = "No se pudieron cargar las marcas.";
   }
+  pintarCinta();
+  pintarExplorador();
 }
 
 async function cargarModelos(marca) {
+<<<<<<< Updated upstream
   llenarLista($("modelo"), [], "Selecciona");
   llenarLista($("anio"), [], "Selecciona");
   if (!marca) return;
+=======
+  llenarLista($("modelo"), [], "Selecciona un modelo");
+  llenarLista($("anio"), [], "Selecciona un año");
+  if (!marca) { pintarExplorador(); return; }
+  pintarExplorador(true);
+>>>>>>> Stashed changes
   try {
     llenarLista($("modelo"), await api("modelos", { marca }), "Selecciona");
-  } catch (err) {
-    console.error(err);
-    avisar("No se pudieron cargar los modelos. " + describirError(err));
-  }
+  } catch (err) { console.error(err); }
+  pintarExplorador();
 }
 
 async function cargarAnios(marca, modelo) {
+<<<<<<< Updated upstream
   llenarLista($("anio"), [], "Selecciona");
   if (!marca || !modelo) return;
+=======
+  llenarLista($("anio"), [], "Selecciona un año");
+  if (!marca || !modelo) { pintarExplorador(); return; }
+  pintarExplorador(true);
+>>>>>>> Stashed changes
   try {
     llenarLista($("anio"), await api("anios", { marca, modelo }), "Selecciona");
-  } catch (err) {
-    console.error(err);
-    avisar("No se pudieron cargar los años. " + describirError(err));
-  }
+  } catch (err) { console.error(err); }
+  pintarExplorador();
 }
 
 $("marca").addEventListener("change", (e) => cargarModelos(e.target.value));
 $("modelo").addEventListener("change", (e) => cargarAnios($("marca").value, e.target.value));
+$("anio").addEventListener("change", () => pintarExplorador());
 
 /* =====================================================================
    BÚSQUEDA POR TEXTO (palabra clave, código o descripción)
@@ -101,12 +175,67 @@ function terminosDe(texto) {
   return texto.replace(/[,()"\\]/g, " ").split(/\s+/).filter(Boolean).slice(0, MAX_TERMINOS);
 }
 
+<<<<<<< Updated upstream
 /* Un repuesto coincide si CADA palabra aparece en nombre, código o descripción.
    Es el mismo criterio del backend (AND entre palabras, OR entre campos) y
    garantiza que solo se muestren resultados que contienen lo escrito. */
 function coincide(repuesto, terminos) {
   const campos = normalizar([repuesto.nombre, repuesto.codigo, repuesto.descripcion].join(" "));
   return terminos.every((t) => campos.includes(normalizar(t)));
+=======
+/* ---------- T3: resultado de búsqueda ---------- */
+function mostrarEsqueleto() {
+  const fila = `
+    <article class="repuesto" aria-hidden="true">
+      <div class="repuesto-cab">
+        <span class="esqueleto esq-titulo"></span>
+        <span class="esqueleto esq-precio"></span>
+      </div>
+      <div class="repuesto-detalle">
+        <span class="esqueleto esq-linea"></span>
+        <span class="esqueleto esq-linea"></span>
+      </div>
+    </article>`;
+  $("resultados").innerHTML = `<p class="resumen">Buscando repuestos…</p>` + fila.repeat(ESQUELETOS_RESULTADOS);
+}
+
+function mostrarResultados(repuestos) {
+  const total = repuestos.length;
+  const filasRepuestos = repuestos.map((r) => {
+    // Primero las sucursales con más stock: el mecánico ve de inmediato dónde está la pieza
+    const sucursales = [...r.sucursales].sort((a, b) => b.stock - a.stock);
+    const conStock = sucursales.filter((s) => s.stock > 0).length;
+    const disponibilidad = conStock > 0
+      ? `En stock en ${conStock} de ${sucursales.length} ${sucursales.length === 1 ? "sucursal" : "sucursales"}`
+      : "Sin stock";
+    const filas = sucursales.map((s) => `
+      <tr>
+        <td>
+          <span class="sucursal-nombre">${escapar(s.nombre)}</span>
+          ${s.direccion ? `<span class="sucursal-direccion">${escapar(s.direccion)}</span>` : ""}
+        </td>
+        <td class="num ${s.stock > 0 ? "stock-ok" : "stock-cero"}">${escapar(s.stock)}</td>
+      </tr>`).join("");
+    const tabla = sucursales.length
+      ? `<table>
+          <thead><tr><th>Sucursal</th><th class="num">Stock</th></tr></thead>
+          <tbody>${filas}</tbody>
+        </table>`
+      : `<p class="sucursal-vacia">Este repuesto no tiene sucursales registradas.</p>`;
+    return `
+      <article class="repuesto">
+        <div class="repuesto-cab">
+          <h2>${escapar(r.nombre)}</h2>
+          ${r.descripcion ? `<p class="repuesto-desc">${escapar(r.descripcion)}</p>` : ""}
+          <span class="precio">${formatoPrecio.format(r.precio)}</span>
+          <span class="disponibilidad ${conStock > 0 ? "stock-ok" : "stock-cero"}">${disponibilidad}</span>
+        </div>
+        <div class="repuesto-detalle">${tabla}</div>
+      </article>`;
+  }).join("");
+  $("resultados").innerHTML =
+    `<p class="resumen">${total} ${total === 1 ? "repuesto encontrado" : "repuestos encontrados"}</p>` + filasRepuestos;
+>>>>>>> Stashed changes
 }
 
 /* Marca con <mark> las palabras buscadas (el texto se escapa antes de insertarlo) */
@@ -291,12 +420,27 @@ function limpiarPantalla() {
   $("caja-orden").hidden = true;
 }
 
+/* ---------- T4, T5 y T6: avisos ---------- */
+function mostrarAviso(tipo, titulo, texto = "") {
+  $("mensajes").innerHTML = `
+    <div class="aviso aviso-${tipo}">
+      <p class="aviso-titulo">${escapar(titulo)}</p>
+      ${texto ? `<p class="aviso-texto">${escapar(texto)}</p>` : ""}
+    </div>`;
+}
+
 /* ---------- Ganchos para las tareas de otros compañeros ----------
    Cada función se llama en el momento correcto del flujo. Quien tenga la tarea
    solo debe completar su función, sin tocar el resto del archivo.            */
-function mostrarSinStock(repuestos)   { /* T4 (Meneses): "Sin stock en ninguna sucursal" */ }
-function mostrarNoEncontrado()        { /* T5 (Meneses): "No se encontró el repuesto que busca" */ }
-function mostrarErrorInventario(err)  { /* T6 (José Luis): "No se pudo consultar el stock, intenta de nuevo más tarde" */ }
+function mostrarSinStock(repuestos) {
+  mostrarAviso("sin-stock", "Sin stock en ninguna sucursal", "Prueba con otro repuesto del mismo vehículo o consulta más tarde.");
+}
+function mostrarNoEncontrado() {
+  mostrarAviso("vacio", "No se encontró el repuesto que busca", "Revisa la ortografía o escribe solo una palabra, por ejemplo «filtro».");
+}
+function mostrarErrorInventario(err) {
+  mostrarAviso("error", "No se pudo consultar el stock, intenta de nuevo más tarde");
+}
 
 /* ---------- Atajos de categoría: llenan el buscador y ejecutan la búsqueda ---------- */
 function marcarCategoria(texto) {
@@ -307,20 +451,12 @@ function marcarCategoria(texto) {
   });
 }
 
-/* El campo muestra la palabra completa (data-q); la consulta usa la raíz (data-buscar),
-   así "transmisión" también encuentra "transmision" y "frenos" encuentra "freno". */
-let atajo = null;
-
 $("categorias").addEventListener("click", (e) => {
   const boton = e.target.closest(".category-item");
   if (!boton) return;
-  atajo = { texto: boton.dataset.q, buscar: boton.dataset.buscar || boton.dataset.q };
-  $("repuesto").value = atajo.texto;
+  $("repuesto").value = boton.dataset.q;
   $("form-busqueda").requestSubmit();
 });
-
-// Si el mecánico edita el texto, deja de ser un atajo
-$("repuesto").addEventListener("input", () => { atajo = null; });
 
 /* ---------- Flujo del botón "Buscar" (también Enter en el campo de texto) ---------- */
 function setCargando(cargando) {
@@ -334,15 +470,14 @@ $("form-busqueda").addEventListener("submit", async (e) => {
   limpiarPantalla();
   if (!validar()) return;
 
+<<<<<<< Updated upstream
   const texto = $("repuesto").value.trim();
-  const usaAtajo = atajo && normalizar(texto) === normalizar(atajo.texto);
-  const consulta = usaAtajo ? atajo.buscar : texto; // lo que se envía y se compara
   const marca = $("marca").value;
   const vehiculo = marca ? { marca, modelo: $("modelo").value, anio: $("anio").value } : null;
 
   // Solo se envía lo que el mecánico llenó
   const params = {};
-  if (consulta) params.repuesto = consulta;
+  if (texto) params.repuesto = texto;
   if (vehiculo) Object.assign(params, vehiculo);
 
   marcarCategoria(texto);
@@ -350,9 +485,24 @@ $("form-busqueda").addEventListener("submit", async (e) => {
 
   try {
     const { repuestos } = await api("repuestos", params);
+=======
+  const boton = $("btn-buscar");
+  boton.disabled = true;
+  $("estado").textContent = "Buscando…";
+  mostrarEsqueleto();
+
+  try {
+    const { repuestos } = await api("repuestos", {
+      marca: $("marca").value,
+      modelo: $("modelo").value,
+      anio: $("anio").value,
+      repuesto: $("repuesto").value.trim()
+    });
+    $("resultados").innerHTML = ""; // quita el esqueleto de carga
+>>>>>>> Stashed changes
 
     // Solo coincidencias con lo escrito (el backend ya filtra; aquí se garantiza)
-    const terminos = terminosDe(consulta);
+    const terminos = terminosDe(texto);
     const coinciden = repuestos.filter((r) => coincide(r, terminos));
 
     busqueda = { texto, terminos, vehiculo, repuestos: coinciden };
@@ -379,12 +529,16 @@ $("form-busqueda").addEventListener("submit", async (e) => {
     $("zona-resultados").scrollIntoView({ behavior: reducir ? "auto" : "smooth", block: "start" });
   } catch (err) {
     console.error(err);
-    avisar(describirError(err)); // visible aunque T6 aún no esté implementado
+<<<<<<< Updated upstream
     $("zona-resultados").hidden = false; // para que se vea el mensaje de T6
+=======
+    $("resultados").innerHTML = "";
+>>>>>>> Stashed changes
     mostrarErrorInventario(err); // el backend responde 503 si la BD no responde
   } finally {
     setCargando(false);
   }
 });
 
+activarIman($("btn-buscar"));
 cargarMarcas();
