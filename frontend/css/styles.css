@@ -15,11 +15,19 @@
   --text-muted: #6b7280;
   --border-light: #e5e7eb;
   --bg-page: #f8fafc;
-  --success-color: #10b981;
-  --success-text: #047857;
-  --error-on-dark: #ff8a80;
+  --bg-soft: #f1f5f9;
+  --success-color: #11805f;
+  --success-on-dark: #4cc9a0;
   --radius-sm: 6px;
   --radius-md: 10px;
+  --error-on-dark: #ff8a80;
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.06), 8px 8px 0 var(--primary-red);
+  --shadow-panel: 8px 8px 0 var(--dark-bg);
+  --shadow-hoja: 0 1px 0 var(--border-light), 6px 6px 0 var(--border-light);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --display-xl: clamp(2.75rem, 9vw, 5.75rem);
+  --display-lg: clamp(1.6rem, 4vw, 2.5rem);
+  --z-grano: 50;
 }
 
 * {
@@ -28,9 +36,6 @@
   box-sizing: border-box;
   font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
 }
-
-/* Sin esto, display:flex/grid anula el atributo hidden */
-[hidden] { display: none !important; }
 
 body {
   background-color: var(--bg-page);
@@ -51,724 +56,455 @@ body::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
 }
 
-mark {
-  background-color: #fde68a;
-  color: inherit;
-  border-radius: 2px;
-  padding: 0 1px;
-}
-
 /* =========================================
-   HEADER / NAVBAR
+   ENCABEZADO
 ========================================= */
-.navbar {
+.encabezado {
+  position: relative;
+  overflow: hidden;
   background-color: var(--dark-bg);
-  border-bottom: 2px solid var(--primary-red);
-  padding: 0.9rem 4%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  border-bottom: 4px solid var(--primary-red);
+  padding-top: clamp(28px, 5vw, 48px);
 }
-
-.nav-left {
-  display: flex;
-  align-items: center;
-  gap: 2.5rem;
-}
-
-.brand-logo {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  text-decoration: none;
-}
-
-.logo-box {
-  background-color: var(--primary-red);
-  color: #ffffff;
-  font-weight: 900;
-  font-size: 1.25rem;
-  padding: 3px 10px;
-  border-radius: 4px;
-  transform: skewX(-8deg);
-  display: inline-block;
-}
-
-.logo-titles {
-  display: flex;
-  flex-direction: column;
-}
-
-.logo-main {
-  color: #ffffff;
-  font-weight: 800;
-  font-size: 0.95rem;
-  letter-spacing: 0.5px;
-}
-
-.logo-sub {
-  color: #9ca3af;
-  font-size: 0.65rem;
-  letter-spacing: 1px;
-}
-
-.nav-menu {
-  display: flex;
-  gap: 1.5rem;
-}
-
-.nav-menu a {
-  color: #d1d5db;
-  text-decoration: none;
-  font-size: 0.88rem;
-  font-weight: 500;
-  transition: color 0.2s;
-}
-
-.nav-menu a:hover,
-.nav-menu a.active {
-  color: #ffffff;
-}
-
-a:focus-visible {
-  outline: 3px solid rgba(211, 47, 47, 0.6);
-  outline-offset: 3px;
-  border-radius: 2px;
-}
-
-/* =========================================
-   HERO / BUSCADOR PRINCIPAL (FONDO OSCURO)
-========================================= */
-.hero-section {
-  background:
-    radial-gradient(circle at 88% 0%, rgba(211, 47, 47, 0.22), transparent 45%),
-    linear-gradient(135deg, #101216 0%, #1c2129 100%);
-  color: #ffffff;
-  padding: 3.5rem 4%;
-  border-bottom: 1px solid #282f3c;
-}
-
-.hero-container {
-  max-width: 980px;
+.encabezado-interno {
+  position: relative;
+  max-width: 1200px;
   margin: 0 auto;
+  padding: 0 20px clamp(28px, 4vw, 44px);
 }
-
-.hero-title {
-  font-size: 2.3rem;
+/* Doble filete vertical, como en una portada impresa */
+.encabezado-interno::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: calc(-1 * clamp(28px, 5vw, 48px));
+  bottom: 0;
+  border-left: 4px double var(--dark-line);
+}
+.encabezado h1 { line-height: 0.9; }
+.titulo-fuerte {
+  display: block;
+  font-size: var(--display-xl);
   font-weight: 900;
-  line-height: 1.15;
-  margin-bottom: 0.5rem;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  color: var(--white);
 }
-
-.hero-title .text-red {
+.titulo-acento {
+  display: block;
+  margin: -0.1em 0 0 clamp(0px, 8vw, 110px);
+  font-size: clamp(1.75rem, 5vw, 3.25rem);
+  font-weight: 300;
+  font-style: italic;
+  letter-spacing: -0.02em;
   color: var(--primary-red);
 }
+.encabezado .sub { color: var(--dark-muted); margin-top: 18px; max-width: 52ch; }
 
-.hero-subtitle {
-  color: #94a3b8;
-  font-size: 0.95rem;
-  margin-bottom: 1.8rem;
+/* Arte: disco rojo recortado con un engranaje girando lento */
+.encabezado-arte {
+  position: absolute;
+  top: 12%;
+  right: clamp(-200px, -9vw, -60px);
+  width: clamp(280px, 42vw, 520px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background-color: var(--primary-red);
+  color: var(--dark-bg);
 }
+.engranaje { width: 78%; animation: giro 60s linear infinite; }
 
-/* Buscador de texto */
-.search-bar {
+/* Cinta de marcas: texto con contorno que corre sin parar */
+.cinta { overflow: hidden; border-top: 1px solid var(--dark-line); background-color: var(--dark-card); }
+.cinta:empty { display: none; }
+.cinta-pista {
   display: flex;
-  background-color: #ffffff;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  align-items: center;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-  margin-bottom: 1.8rem;
-  border: 2px solid transparent;
+  width: max-content;
+  animation: cinta var(--cinta-duracion, 40s) linear infinite;
+}
+.cinta-item {
+  flex: none;
+  padding: 10px 28px;
+  font-size: 1.1rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--dark-muted);
+}
+.cinta-item::after {
+  content: "/";
+  margin-left: 28px;
+  color: var(--primary-red);
+  -webkit-text-stroke: 0;
 }
 
-.search-bar:focus-within {
+main { max-width: 1200px; margin: 0 auto; padding: 40px 20px 72px; }
+
+/* =========================================
+   T2: BUSCADOR
+========================================= */
+.buscador {
+  position: relative;
+  background-color: var(--dark-card);
+  border: 1px solid var(--dark-line);
+  border-radius: var(--radius-sm);
+  padding: 24px 24px 18px;
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr) minmax(0, 1fr) minmax(190px, 0.8fr) minmax(0, 1.4fr) auto;
+  column-gap: 16px;
+  align-items: start;
+  color-scheme: dark;
+  box-shadow: var(--shadow-card);
+}
+/* Numeral fantasma, como los "PROJECT 01" de un portafolio: solo adorno */
+.buscador::before,
+.explorador::before {
+  content: "01";
+  content: "01" / "";
+  position: absolute;
+  top: -0.42em;
+  right: 20px;
+  font-size: clamp(3rem, 7vw, 4.5rem);
+  font-weight: 900;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--dark-muted);
+  pointer-events: none;
+}
+.campo { display: flex; flex-direction: column; gap: 8px; }
+label {
+  color: var(--white);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+select, input[type="text"] {
+  font-size: 1rem;
+  padding: 10px 12px;
+  min-height: 44px;
+  background-color: var(--dark-input);
+  color: var(--white);
+  border: 1px solid var(--dark-line);
+  border-radius: var(--radius-sm);
+}
+input::placeholder { color: var(--dark-placeholder); }
+select option { background-color: var(--dark-input); color: var(--white); }
+select:disabled { opacity: 0.5; cursor: not-allowed; }
+select:focus, input:focus {
+  outline: 2px solid var(--primary-red);
+  outline-offset: 1px;
   border-color: var(--primary-red);
 }
+.campo.invalido select, .campo.invalido input { border-color: var(--error-on-dark); }
+.msg-campo { color: var(--error-on-dark); font-size: 0.85rem; min-height: 1.2em; }
 
-.search-bar.invalido {
-  border-color: var(--error-on-dark);
-}
-
-.search-icon {
-  color: #9ca3af;
-  padding-left: 1.2rem;
+/* El margen iguala la altura de la etiqueta (0.8rem x 1.5) más el gap, para alinear el botón con los campos */
+.acciones { display: flex; align-items: center; margin-top: calc(0.8rem * 1.5 + 8px); }
+.boton {
   font-size: 1rem;
-}
-
-.search-bar input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  outline: none;
-  padding: 0.9rem 1rem;
-  font-size: 0.95rem;
-  color: var(--text-main);
-  background: transparent;
-}
-
-.btn-primary-red {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   background-color: var(--primary-red);
-  color: #ffffff;
-  border: none;
-  padding: 0 1.8rem;
-  font-weight: 700;
-  font-size: 0.9rem;
+  color: var(--white);
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 11px 32px;
+  min-height: 44px;
   cursor: pointer;
   transform: translate(var(--iman-x, 0px), var(--iman-y, 0px));
   transition: background-color 0.2s, transform 0.3s var(--ease-out);
 }
-
-.search-bar .btn-primary-red {
-  align-self: stretch;
-}
-
-.btn-primary-red:hover {
-  background-color: var(--primary-red-hover);
-}
-
-.btn-primary-red:focus-visible {
-  outline: 3px solid rgba(255, 255, 255, 0.7);
-  outline-offset: -3px;
-}
-
-.btn-primary-red:disabled {
-  background-color: var(--dark-input);
-  color: #8b93a0;
-  cursor: progress;
-}
-
-/* Selector de vehículo */
-.vehicle-picker-card {
-  background-color: var(--dark-card);
-  border: 1px solid #2d3542;
-  border-radius: var(--radius-md);
-  padding: 1.2rem 1.5rem;
-}
-
-.picker-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #f1f5f9;
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  margin-bottom: 0.9rem;
-}
-
-.picker-fields {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
-  gap: 1rem;
-  align-items: flex-end;
-}
-
-.field-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.field-item label {
-  color: #94a3b8;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-.field-item select {
-  background-color: var(--dark-input);
-  border: 1px solid #3b4453;
-  color: #ffffff;
-  padding: 0.7rem 0.9rem;
-  border-radius: var(--radius-sm);
-  outline: none;
-  font-size: 0.85rem;
-}
-
-.field-item select option {
-  background-color: var(--dark-input);
-  color: #ffffff;
-}
-
-.field-item select:focus {
-  border-color: var(--primary-red);
-  box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.3);
-}
-
-.field-item select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.field-item.invalido select {
-  border-color: var(--error-on-dark);
-}
-
-.picker-btn {
-  padding: 0.7rem 1.4rem;
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.msg-busqueda {
-  color: var(--error-on-dark);
-  font-size: 0.85rem;
-  min-height: 1.3em;
-  margin-top: 0.9rem;
-}
-
-.estado {
-  color: #aab1bc;
-  font-size: 0.85rem;
-  min-height: 1.3em;
-}
+.boton:hover { background-color: var(--primary-red-hover); }
+.boton:active { transform: translate(var(--iman-x, 0px), calc(var(--iman-y, 0px) + 1px)) scale(0.98); }
+.boton:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+.boton:disabled { background-color: var(--dark-input); color: var(--dark-placeholder); cursor: progress; transform: none; }
+.estado { grid-column: 1 / -1; color: var(--dark-muted); font-size: 0.9rem; }
+.estado:empty { display: none; }
 
 /* =========================================
-   CATEGORÍAS (ATAJOS DE BÚSQUEDA)
+   REDISEÑO: EXPLORADOR DE VEHÍCULO
+   Atajos visibles sobre los mismos campos marca, modelo y año
 ========================================= */
-.categories-bar {
-  background-color: #ffffff;
-  border-bottom: 1px solid var(--border-light);
-  padding: 1.8rem 0;
-}
-
-.section-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 4%;
-}
-
-.section-heading {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: #374151;
-  letter-spacing: 0.5px;
-  margin-bottom: 1rem;
-}
-
-.categories-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 0.9rem;
-}
-
-.category-item {
-  font: inherit;
-  background-color: #f9fafb;
-  border: 1px solid var(--border-light);
+.explorador {
+  position: relative;
+  margin-top: 48px;
+  padding: clamp(20px, 3vw, 32px);
+  background-color: var(--primary-red);
   border-radius: var(--radius-sm);
-  padding: 1rem 0.5rem;
+  box-shadow: var(--shadow-panel);
+}
+.explorador::before { content: "02"; content: "02" / ""; }
+.explorador-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-bottom: 18px;
+}
+.explorador h2 {
+  font-size: var(--display-lg);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: var(--white);
+}
+.explorador-cab:has(+ .atajos:empty) { margin-bottom: 0; }
+.ruta { display: flex; flex-wrap: wrap; gap: 8px; }
+.ruta:empty { display: none; }
+.ruta-paso {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 6px 14px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--white);
+  background-color: var(--dark-bg);
+  border: 1px solid var(--dark-bg);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: transform 0.3s var(--ease-out);
+}
+.ruta-paso::after { content: "Cambiar"; margin-left: 10px; font-size: 0.8rem; font-weight: 400; color: var(--dark-muted); }
+.ruta-paso:hover { transform: translateY(-2px); }
+.ruta-paso:active, .atajo:active { transform: translateY(1px) scale(0.98); }
+.ruta-paso:focus-visible, .atajo:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+
+/* Cada atajo lleva su número de índice, como en un catálogo impreso */
+.atajos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  counter-reset: atajo;
+}
+.atajo {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
+  gap: 2px;
+  min-height: 56px;
+  padding: 8px 14px;
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: left;
+  color: var(--text-main);
+  background-color: var(--white);
+  border: 0;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+  transition: background-color 0.2s, color 0.2s, transform 0.3s var(--ease-out);
 }
-
-.category-item i {
-  font-size: 1.4rem;
-  color: #4b5563;
-}
-
-.category-item span {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #374151;
-}
-
-.category-item:hover,
-.category-item.active {
-  border-color: var(--primary-red);
-  background-color: #ffffff;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-}
-
-.category-item:focus-visible {
-  outline: 3px solid rgba(211, 47, 47, 0.45);
-  outline-offset: 2px;
-}
-
-.category-item.active i,
-.category-item.active span {
+.atajo::before {
+  counter-increment: atajo;
+  content: counter(atajo, decimal-leading-zero);
+  content: counter(atajo, decimal-leading-zero) / "";
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   color: var(--primary-red);
 }
+.atajo:hover { background-color: var(--dark-bg); color: var(--white); transform: translateY(-2px); }
+.atajo:hover::before { color: var(--dark-muted); }
+.atajos:empty { display: none; }
+.atajos-vacio { grid-column: 1 / -1; color: var(--white); font-size: 0.95rem; }
+
+/* Carga: esqueletos con el tamaño del contenido real */
+.esqueleto {
+  display: block;
+  background-color: var(--border-light);
+  border-radius: var(--radius-sm);
+  animation: latido 1.2s ease-in-out infinite alternate;
+}
+.atajo-esqueleto { min-height: 56px; background-color: var(--white); opacity: 0.5; }
+.esq-titulo { height: 24px; width: 70%; }
+.esq-precio { height: 32px; width: 40%; }
+.esq-linea { height: 40px; width: 100%; margin-bottom: 10px; }
+.repuesto-cab .esqueleto { background-color: var(--dark-input); }
 
 /* =========================================
-   FILTROS + RESULTADOS
+   T3: RESULTADOS
+   Cada repuesto es una entrada de catálogo: ficha oscura, talón con perforación
 ========================================= */
-.main-layout {
-  display: flex;
-  gap: 2rem;
-  padding-top: 2rem;
-  padding-bottom: 4rem;
-  scroll-margin-top: 70px;
-}
-
-/* Barra lateral */
-.sidebar-filters {
-  width: 250px;
-  flex-shrink: 0;
-  background-color: #ffffff;
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
-  padding: 1.3rem;
-  height: fit-content;
-}
-
-.filters-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  border-bottom: 1px solid var(--border-light);
-  padding-bottom: 0.8rem;
-  margin-bottom: 1rem;
-}
-
-.filters-top h3 {
-  font-size: 1.05rem;
-  font-weight: 800;
-}
-
-.clear-link {
-  background: none;
-  border: none;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.clear-link:hover {
-  color: var(--primary-red);
-}
-
-.filter-group {
-  margin-bottom: 1.2rem;
-  border-bottom: 1px solid #f1f5f9;
-  padding-bottom: 1rem;
-}
-
-.filter-group:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-  margin-bottom: 0;
-}
-
-.filter-group h4 {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #4b5563;
-  margin-bottom: 0.6rem;
-}
-
-.filter-group label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.82rem;
-  color: #374151;
-  margin-bottom: 0.45rem;
-  cursor: pointer;
-}
-
-.filter-group input[type="checkbox"] {
-  accent-color: var(--primary-red);
-}
-
-/* Resultados */
-.results-area {
-  flex: 1;
-  min-width: 0;
-}
-
-.results-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.query-title {
-  font-size: 1.2rem;
-  font-weight: 800;
-  overflow-wrap: anywhere;
-}
-
-.results-count {
-  font-size: 0.82rem;
-  color: var(--text-muted);
-}
-
-.sort-box {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+#resultados { margin-top: 48px; counter-reset: lamina; }
+.resumen {
+  margin-bottom: 24px;
+  padding-bottom: 10px;
+  border-bottom: 3px solid var(--text-main);
   font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.sort-box select {
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
-  background: #ffffff;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--text-main);
 }
-
-.products-grid {
+.repuesto {
+  counter-increment: lamina;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 1.2rem;
-}
-
-.sin-coincidencias {
-  grid-column: 1 / -1;
-  text-align: center;
-  color: var(--text-muted);
-  background: #ffffff;
-  border: 1px dashed var(--border-light);
-  border-radius: var(--radius-md);
-  padding: 1.5rem;
-}
-
-#mensajes:not(:empty) {
-  margin-top: 1.2rem;
-}
-
-/* Tarjeta de producto */
-.product-card {
-  background-color: #ffffff;
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  margin-bottom: 28px;
   overflow: hidden;
+  background-color: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-hoja);
+}
+.repuesto-cab {
   position: relative;
   display: flex;
   flex-direction: column;
-  transition: box-shadow 0.2s;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 190px;
+  padding: 24px;
+  overflow-wrap: anywhere;
+  background-color: var(--dark-card);
+  color: var(--white);
 }
-
-.product-card:hover {
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.07);
-}
-
-.badge-compatible {
+/* Numeral de lámina fantasma, abajo a la derecha de la ficha */
+.repuesto-cab::after {
+  content: counter(lamina, decimal-leading-zero);
+  content: counter(lamina, decimal-leading-zero) / "";
   position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: var(--primary-red);
-  color: #ffffff;
-  font-size: 0.65rem;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 4px;
-  z-index: 2;
+  right: 16px;
+  bottom: 4px;
+  font-size: clamp(3.5rem, 6vw, 5rem);
+  font-weight: 900;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--dark-placeholder);
+  opacity: 0.4;
+  pointer-events: none;
 }
-
-/* Imagen: cuando exista, reemplaza al marcador */
-.card-img-wrap {
-  height: 140px;
-  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  color: #9ca3af;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.card-img-wrap i {
-  font-size: 2.4rem;
-}
-
-.card-img-wrap span {
-  font-size: 0.72rem;
-  font-weight: 600;
-}
-
-.card-img-wrap img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  padding: 0.8rem;
-}
-
-.card-body {
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.product-name {
-  font-size: 0.95rem;
-  font-weight: 700;
-  margin-bottom: 0.25rem;
-  line-height: 1.3;
-}
-
-.product-compatibility {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-bottom: 0.4rem;
-}
-
-.product-desc {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin-bottom: 0.5rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.product-code {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  margin-bottom: 0.8rem;
-}
-
-.card-footer {
-  margin-top: auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.price {
-  font-size: 1.15rem;
+.repuesto h2 { font-size: clamp(1.3rem, 2.4vw, 1.75rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.01em; }
+.repuesto-desc { color: var(--dark-muted); font-size: 0.9rem; max-width: 65ch; }
+/* Etiqueta de precio con muesca y ojal */
+.precio {
+  padding: 6px 18px 6px 28px;
+  font-size: 1.5rem;
   font-weight: 800;
+  line-height: 1.2;
+  color: var(--white);
+  background:
+    radial-gradient(circle at 13px 50%, var(--dark-card) 0 3.5px, transparent 4px),
+    var(--primary-red);
+  clip-path: polygon(14px 0, 100% 0, 100% 100%, 14px 100%, 0 50%);
+  font-variant-numeric: tabular-nums;
+}
+.disponibilidad { display: inline-flex; align-items: center; font-size: 0.85rem; font-weight: 700; }
+.disponibilidad::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+.disponibilidad.stock-ok::before { animation: pulso 1.8s ease-in-out infinite; }
+.repuesto-cab .stock-ok { color: var(--success-on-dark); }
+.repuesto-cab .stock-cero { color: var(--dark-muted); }
+
+/* Talón: línea de corte punteada y dos muescas, como un boleto */
+.repuesto-detalle {
+  position: relative;
+  padding: 24px;
+  border-left: 2px dashed var(--border-light);
+}
+.repuesto-detalle::before, .repuesto-detalle::after {
+  content: "";
+  position: absolute;
+  left: -11px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: var(--bg-page);
+}
+.repuesto-detalle::before { top: -11px; }
+.repuesto-detalle::after { bottom: -11px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+th, td { text-align: left; padding: 10px 8px; vertical-align: top; }
+th { font-weight: 700; font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+tbody td { border-top: 1px solid var(--border-light); }
+tbody tr:hover td { background-color: var(--bg-soft); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.num { font-size: 1.35rem; font-weight: 800; }
+.sucursal-nombre { display: block; font-weight: 700; }
+.sucursal-direccion { display: block; color: var(--text-muted); font-size: 0.85rem; }
+.sucursal-vacia { color: var(--text-muted); font-size: 0.95rem; }
+.stock-ok { color: var(--success-color); font-weight: 700; }
+.stock-cero { color: var(--text-muted); }
+
+/* =========================================
+   T4, T5 y T6: AVISOS (sin stock, no encontrado, error de inventario)
+   Cinta de precaución de taller en la parte superior
+========================================= */
+#mensajes { margin-top: 28px; }
+.aviso {
+  overflow: hidden;
+  background-color: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-hoja);
+}
+.aviso::before {
+  content: "";
+  display: block;
+  height: 12px;
+  background: repeating-linear-gradient(-45deg, var(--dark-bg) 0 12px, var(--text-muted) 12px 24px);
+}
+.aviso-error::before {
+  background: repeating-linear-gradient(-45deg, var(--dark-bg) 0 12px, var(--primary-red) 12px 24px);
+}
+.aviso-titulo {
+  padding: 18px 24px 0;
+  font-size: clamp(1.1rem, 2.4vw, 1.5rem);
+  font-weight: 800;
+  line-height: 1.2;
   color: var(--text-main);
-  font-variant-numeric: tabular-nums;
 }
-
-.stock-pill {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 999px;
-}
-
-.stock-pill.ok {
-  background-color: #d1fae5;
-  color: var(--success-text);
-}
-
-.stock-pill.cero {
-  background-color: #f3f4f6;
-  color: var(--text-muted);
-}
-
-/* Stock por sucursal (se abre al pulsar) */
-.sucursales {
-  margin-top: 0.8rem;
-  border-top: 1px solid #f1f5f9;
-  padding-top: 0.6rem;
-  font-size: 0.8rem;
-}
-
-.sucursales summary {
-  cursor: pointer;
-  font-weight: 700;
-  color: #4b5563;
-  list-style: none;
-}
-
-.sucursales summary::-webkit-details-marker {
-  display: none;
-}
-
-.sucursales summary::before {
-  content: "▸ ";
-}
-
-.sucursales[open] summary::before {
-  content: "▾ ";
-}
-
-.sucursales summary:focus-visible {
-  outline: 3px solid rgba(211, 47, 47, 0.45);
-  outline-offset: 2px;
-}
-
-.sucursales ul {
-  list-style: none;
-  margin-top: 0.5rem;
-  display: grid;
-  gap: 0.3rem;
-}
-
-.sucursales li {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.sucursales li.vacio {
-  color: var(--text-muted);
-}
-
-.stock-ok {
-  color: var(--success-text);
-  font-weight: 700;
-}
-
-.stock-cero {
-  color: var(--text-muted);
-}
+.aviso-titulo:last-child { padding-bottom: 18px; }
+.aviso-texto { padding: 6px 24px 18px; max-width: 65ch; color: var(--text-muted); }
 
 /* =========================================
-   PIE DE PÁGINA
+   MOVIMIENTO (solo transform y opacity)
 ========================================= */
-.site-footer {
-  background-color: var(--dark-bg);
-  border-top: 2px solid var(--primary-red);
-  color: #9ca3af;
-  text-align: center;
-  font-size: 0.8rem;
-  padding: 1.4rem 4%;
-}
+.repuesto, .aviso { animation: entrar 0.5s var(--ease-out) both; }
+#resultados .repuesto:nth-child(3) { animation-delay: 70ms; }
+#resultados .repuesto:nth-child(4) { animation-delay: 140ms; }
+#resultados .repuesto:nth-child(5) { animation-delay: 210ms; }
+#resultados .repuesto:nth-child(n+6) { animation-delay: 280ms; }
+@keyframes entrar { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes latido { from { opacity: 0.45; } to { opacity: 1; } }
+@keyframes giro { to { transform: rotate(360deg); } }
+@keyframes cinta { to { transform: translateX(-50%); } }
+@keyframes pulso { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.6); opacity: 0.55; } }
 
-/* =========================================
-   RESPONSIVE DESIGN (MÓVIL / TABLET)
-========================================= */
-@media (max-width: 850px) {
-  .nav-menu {
-    display: none;
-  }
-  .picker-fields {
-    grid-template-columns: 1fr;
-  }
-  .hero-title {
-    font-size: 1.8rem;
-  }
-  .main-layout {
-    flex-direction: column;
-  }
-  .sidebar-filters {
-    width: 100%;
-  }
-  .results-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+@media (max-width: 1000px) {
+  .buscador { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .campo.ancho, .acciones { grid-column: 1 / -1; }
+  .acciones { margin-top: 4px; }
+  .encabezado-arte { opacity: 0.3; }
+  .repuesto { grid-template-columns: 1fr; }
+  .repuesto-cab { min-height: 0; padding-bottom: 56px; }
+  .repuesto-detalle { border-left: 0; border-top: 2px dashed var(--border-light); }
+  .repuesto-detalle::before { top: -11px; left: -11px; }
+  .repuesto-detalle::after { top: -11px; bottom: auto; left: auto; right: -11px; }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none !important;
-  }
+@media (max-width: 640px) {
+  main { padding: 32px 16px 56px; }
+  .encabezado-interno { padding-left: 16px; padding-right: 16px; }
+  .buscador { grid-template-columns: 1fr; padding: 20px 16px 16px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 5px 5px 0 var(--primary-red); }
+  .explorador { margin-top: 40px; box-shadow: 5px 5px 0 var(--dark-bg); }
+  .boton { width: 100%; }
+  .atajos { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+  .ruta-paso::after { display: none; }
+  .repuesto-detalle { padding: 16px; }
+  .repuesto-cab { padding: 20px 20px 52px; }
 }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
