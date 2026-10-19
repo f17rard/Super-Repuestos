@@ -155,14 +155,13 @@ main { max-width: 1200px; margin: 0 auto; padding: 32px 20px 72px; }
   display: grid;
   grid-template-columns:
     minmax(0, 1fr) minmax(0, 1fr) minmax(190px, 0.8fr) minmax(0, 1.4fr) auto;
-  column-gap: 16px;
+  gap: 14px 16px;
   align-items: start;
   color-scheme: dark;
   box-shadow: var(--shadow-card);
 }
 /* Numeral fantasma, como los "PROJECT 01" de un portafolio: solo adorno */
-.buscador::before,
-.explorador::before {
+.buscador::before {
   content: "01";
   content: "01" / "";
   position: absolute;
@@ -230,92 +229,9 @@ select:focus, input:focus {
 .estado:empty { display: none; }
 
 /* =========================================
-   REDISEÑO: EXPLORADOR DE VEHÍCULO
-   Atajos visibles sobre los mismos campos marca, modelo y año
+   T3: RESULTADOS
+   Cada repuesto es una entrada de catálogo: ficha oscura, talón con perforación
 ========================================= */
-.explorador {
-  position: relative;
-  margin-top: 36px;
-  padding: clamp(16px, 2.5vw, 24px);
-  background-color: var(--primary-red);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-panel);
-}
-.explorador::before { content: "02"; content: "02" / ""; }
-.explorador-cab {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px 20px;
-  margin-bottom: 14px;
-}
-.explorador h2 {
-  font-size: var(--display-lg);
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  text-transform: uppercase;
-  color: var(--white);
-}
-.explorador-cab:has(+ .atajos:empty) { margin-bottom: 0; }
-.ruta { display: flex; flex-wrap: wrap; gap: 8px; }
-.ruta:empty { display: none; }
-.ruta-paso {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 6px 14px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--white);
-  background-color: var(--dark-bg);
-  border: 1px solid var(--dark-bg);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: transform 0.3s var(--ease-out);
-}
-.ruta-paso::after { content: "Cambiar"; margin-left: 10px; font-size: 0.8rem; font-weight: 400; color: var(--dark-muted); }
-.ruta-paso:hover { transform: translateY(-2px); }
-.ruta-paso:active, .atajo:active { transform: translateY(1px) scale(0.98); }
-.ruta-paso:focus-visible, .atajo:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
-
-/* Cada atajo lleva su número de índice, como en un catálogo impreso */
-.atajos {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 8px;
-  counter-reset: atajo;
-}
-.atajo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 8px 14px;
-  font-size: 1rem;
-  font-weight: 800;
-  text-align: left;
-  color: var(--text-main);
-  background-color: var(--white);
-  border: 0;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background-color 0.2s, color 0.2s, transform 0.3s var(--ease-out);
-}
-.atajo::before {
-  counter-increment: atajo;
-  content: counter(atajo, decimal-leading-zero);
-  content: counter(atajo, decimal-leading-zero) / "";
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--primary-red);
-}
-.atajo:hover { background-color: var(--dark-bg); color: var(--white); transform: translateY(-2px); }
-.atajo:hover::before { color: var(--dark-muted); }
-.atajos:empty { display: none; }
-.atajos-vacio { grid-column: 1 / -1; color: var(--white); font-size: 0.95rem; }
 
 /* Carga: esqueletos con el tamaño del contenido real */
 .esqueleto {
@@ -324,16 +240,11 @@ select:focus, input:focus {
   border-radius: var(--radius-sm);
   animation: latido 1.2s ease-in-out infinite alternate;
 }
-.atajo-esqueleto { min-height: 44px; background-color: var(--white); opacity: 0.5; }
 .esq-titulo { height: 24px; width: 70%; }
 .esq-precio { height: 32px; width: 40%; }
 .esq-linea { height: 40px; width: 100%; margin-bottom: 10px; }
 .repuesto-cab .esqueleto { background-color: var(--dark-input); }
 
-/* =========================================
-   T3: RESULTADOS
-   Cada repuesto es una entrada de catálogo: ficha oscura, talón con perforación
-========================================= */
 #resultados { margin-top: 28px; counter-reset: lamina; }
 .resumen {
   margin-bottom: 16px;
@@ -359,11 +270,11 @@ select:focus, input:focus {
 .repuesto-cab {
   position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  min-height: 190px;
-  padding: 24px;
+  flex-flow: row wrap;
+  align-items: center;
+  align-content: center;
+  gap: 8px 14px;
+  padding: 20px 24px;
   overflow-wrap: anywhere;
   background-color: var(--dark-card);
   color: var(--white);
@@ -375,7 +286,7 @@ select:focus, input:focus {
   position: absolute;
   right: 16px;
   bottom: 4px;
-  font-size: clamp(3.5rem, 6vw, 5rem);
+  font-size: clamp(3rem, 5vw, 4rem);
   font-weight: 900;
   line-height: 1;
   color: transparent;
@@ -383,6 +294,7 @@ select:focus, input:focus {
   opacity: 0.4;
   pointer-events: none;
 }
+.repuesto-cab h2, .repuesto-desc { flex: 0 0 100%; }
 .repuesto h2 { font-size: clamp(1.3rem, 2.4vw, 1.75rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.01em; }
 .repuesto-desc { color: var(--dark-muted); font-size: 0.9rem; max-width: 65ch; }
 /* Etiqueta de precio con muesca y ojal */
@@ -414,7 +326,7 @@ select:focus, input:focus {
 /* Talón: línea de corte punteada y dos muescas, como un boleto */
 .repuesto-detalle {
   position: relative;
-  padding: 24px;
+  padding: 16px 24px;
   border-left: 2px dashed var(--border-light);
 }
 .repuesto-detalle::before, .repuesto-detalle::after {
@@ -429,14 +341,14 @@ select:focus, input:focus {
 .repuesto-detalle::before { top: -11px; }
 .repuesto-detalle::after { bottom: -11px; }
 table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-th, td { text-align: left; padding: 10px 8px; vertical-align: top; }
+th, td { text-align: left; padding: 8px; vertical-align: middle; }
 th { font-weight: 700; font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
 tbody td { border-top: 1px solid var(--border-light); }
 tbody tr:hover td { background-color: var(--bg-soft); }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-td.num { font-size: 1.35rem; font-weight: 800; }
-.sucursal-nombre { display: block; font-weight: 700; }
-.sucursal-direccion { display: block; color: var(--text-muted); font-size: 0.85rem; }
+td.num { font-size: 1.2rem; font-weight: 800; }
+.sucursal-nombre { font-weight: 700; }
+.sucursal-direccion { margin-left: 10px; color: var(--text-muted); font-size: 0.85rem; }
 .sucursal-vacia { color: var(--text-muted); font-size: 0.95rem; }
 .stock-ok { color: var(--success-color); font-weight: 700; }
 .stock-cero { color: var(--text-muted); }
@@ -492,7 +404,7 @@ td.num { font-size: 1.35rem; font-weight: 800; }
   .acciones { margin-top: 4px; }
   .encabezado-arte { opacity: 0.3; }
   .repuesto { grid-template-columns: 1fr; }
-  .repuesto-cab { min-height: 0; padding-bottom: 56px; }
+  .repuesto-cab { padding-bottom: 56px; }
   .repuesto-detalle { border-left: 0; border-top: 2px dashed var(--border-light); }
   .repuesto-detalle::before { top: -11px; left: -11px; }
   .repuesto-detalle::after { top: -11px; bottom: auto; left: auto; right: -11px; }
@@ -501,10 +413,7 @@ td.num { font-size: 1.35rem; font-weight: 800; }
   main { padding: 32px 16px 56px; }
   .encabezado-interno { padding-left: 16px; padding-right: 16px; }
   .buscador { grid-template-columns: 1fr; padding: 20px 16px 16px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 5px 5px 0 var(--primary-red); }
-  .explorador { margin-top: 32px; box-shadow: 5px 5px 0 var(--dark-bg); }
   .boton { width: 100%; }
-  .atajos { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
-  .ruta-paso::after { display: none; }
   .repuesto-detalle { padding: 16px; }
   .repuesto-cab { padding: 20px 20px 52px; }
 }

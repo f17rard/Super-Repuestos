@@ -59,59 +59,8 @@ function activarIman(boton) {
   });
 }
 
-/* ---------- Rediseño (HU-01): explorador de vehículo ----------
-   Muestra como botones las opciones del siguiente campo vacío (marca, modelo o año)
-   para elegir con un toque. Los selects siguen siendo la fuente de verdad: el
-   explorador solo los lee y les dispara "change", así no cambia ningún flujo de T2. */
-const PASOS_EXPLORADOR = [
-  { id: "marca", etiqueta: "marca", titulo: "Elige la marca" },
-  { id: "modelo", etiqueta: "modelo", titulo: "Elige el modelo" },
-  { id: "anio", etiqueta: "año", titulo: "Elige el año" }
-];
-const ESQUELETOS_ATAJOS = 12;
-const ESQUELETOS_RESULTADOS = 3;
-
-function pintarExplorador(cargando = false) {
-  const paso = PASOS_EXPLORADOR.find((p) => !$(p.id).value);
-  $("ruta-vehiculo").innerHTML = PASOS_EXPLORADOR.filter((p) => $(p.id).value).map((p) => `
-    <button type="button" class="ruta-paso" data-paso="${p.id}" aria-label="Cambiar ${p.etiqueta}: ${escapar($(p.id).value)}">
-      ${escapar($(p.id).value)}
-    </button>`).join("");
-
-  if (!paso) {
-    $("titulo-explorador").textContent = "Vehículo elegido";
-    $("atajos").innerHTML = ""; // vehículo completo: solo queda la ruta elegida
-    return;
-  }
-
-  $("titulo-explorador").textContent = paso.titulo;
-  if (cargando) {
-    $("atajos").innerHTML = `<span class="esqueleto atajo-esqueleto"></span>`.repeat(ESQUELETOS_ATAJOS);
-    return;
-  }
-
-  const opciones = [...$(paso.id).options].filter((o) => o.value);
-  $("atajos").innerHTML = opciones.length
-    ? opciones.map((o) =>
-        `<button type="button" class="atajo" data-paso="${paso.id}" data-valor="${escapar(o.value)}">${escapar(o.text)}</button>`
-      ).join("")
-    : `<p class="atajos-vacio">No hay opciones para mostrar por ahora.</p>`;
-}
-
-$("explorador").addEventListener("click", (e) => {
-  const boton = e.target.closest("button[data-paso]");
-  if (!boton) return;
-  const eligiendo = boton.classList.contains("atajo");
-  const select = $(boton.dataset.paso);
-  select.value = eligiendo ? boton.dataset.valor : "";
-  select.dispatchEvent(new Event("change"));
-  // Con el año elegido el vehículo está completo: el cursor pasa al repuesto
-  if (eligiendo && boton.dataset.paso === "anio") $("repuesto").focus();
-});
-
 /* ---------- T2: listas en cascada (marca > modelo > año) ---------- */
 async function cargarMarcas() {
-  pintarExplorador(true);
   try {
     llenarLista($("marca"), await api("marcas"), "Selecciona una marca");
   } catch (err) {
@@ -119,35 +68,31 @@ async function cargarMarcas() {
     $("estado").textContent = "No se pudieron cargar las marcas.";
   }
   pintarCinta();
-  pintarExplorador();
 }
 
 async function cargarModelos(marca) {
   llenarLista($("modelo"), [], "Selecciona un modelo");
   llenarLista($("anio"), [], "Selecciona un año");
-  if (!marca) { pintarExplorador(); return; }
-  pintarExplorador(true);
+  if (!marca) return;
   try {
     llenarLista($("modelo"), await api("modelos", { marca }), "Selecciona un modelo");
   } catch (err) { console.error(err); }
-  pintarExplorador();
 }
 
 async function cargarAnios(marca, modelo) {
   llenarLista($("anio"), [], "Selecciona un año");
-  if (!marca || !modelo) { pintarExplorador(); return; }
-  pintarExplorador(true);
+  if (!marca || !modelo) return;
   try {
     llenarLista($("anio"), await api("anios", { marca, modelo }), "Selecciona un año");
   } catch (err) { console.error(err); }
-  pintarExplorador();
 }
 
 $("marca").addEventListener("change", (e) => cargarModelos(e.target.value));
 $("modelo").addEventListener("change", (e) => cargarAnios($("marca").value, e.target.value));
-$("anio").addEventListener("change", () => pintarExplorador());
 
 /* ---------- T3: resultado de búsqueda ---------- */
+const ESQUELETOS_RESULTADOS = 3;
+
 function mostrarEsqueleto(texto) {
   const fila = `
     <article class="repuesto" aria-hidden="true">
