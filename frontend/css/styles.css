@@ -25,8 +25,8 @@
   --shadow-panel: 8px 8px 0 var(--dark-bg);
   --shadow-hoja: 0 1px 0 var(--border-light), 6px 6px 0 var(--border-light);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --display-xl: clamp(2.75rem, 9vw, 5.75rem);
-  --display-lg: clamp(1.6rem, 4vw, 2.5rem);
+  --display-xl: clamp(2.5rem, 7vw, 4.75rem);
+  --display-lg: clamp(1.35rem, 3vw, 1.9rem);
   --z-grano: 50;
 }
 
@@ -64,20 +64,20 @@ body::after {
   overflow: hidden;
   background-color: var(--dark-bg);
   border-bottom: 4px solid var(--primary-red);
-  padding-top: clamp(28px, 5vw, 48px);
+  padding-top: clamp(24px, 4vw, 36px);
 }
 .encabezado-interno {
   position: relative;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px clamp(28px, 4vw, 44px);
+  padding: 0 20px clamp(20px, 3vw, 32px);
 }
 /* Doble filete vertical, como en una portada impresa */
 .encabezado-interno::before {
   content: "";
   position: absolute;
   left: 6px;
-  top: calc(-1 * clamp(28px, 5vw, 48px));
+  top: calc(-1 * clamp(24px, 4vw, 36px));
   bottom: 0;
   border-left: 4px double var(--dark-line);
 }
@@ -99,7 +99,7 @@ body::after {
   letter-spacing: -0.02em;
   color: var(--primary-red);
 }
-.encabezado .sub { color: var(--dark-muted); margin-top: 18px; max-width: 52ch; }
+.encabezado .sub { color: var(--dark-muted); margin-top: 14px; max-width: 52ch; }
 
 /* Arte: disco rojo recortado con un engranaje girando lento */
 .encabezado-arte {
@@ -141,7 +141,7 @@ body::after {
   -webkit-text-stroke: 0;
 }
 
-main { max-width: 1200px; margin: 0 auto; padding: 40px 20px 72px; }
+main { max-width: 1200px; margin: 0 auto; padding: 32px 20px 72px; }
 
 /* =========================================
    T2: BUSCADOR
@@ -151,7 +151,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 40px 20px 72px; }
   background-color: var(--dark-card);
   border: 1px solid var(--dark-line);
   border-radius: var(--radius-sm);
-  padding: 24px 24px 18px;
+  padding: 24px;
   display: grid;
   grid-template-columns:
     minmax(0, 1fr) minmax(0, 1fr) minmax(190px, 0.8fr) minmax(0, 1.4fr) auto;
@@ -202,7 +202,8 @@ select:focus, input:focus {
   border-color: var(--primary-red);
 }
 .campo.invalido select, .campo.invalido input { border-color: var(--error-on-dark); }
-.msg-campo { color: var(--error-on-dark); font-size: 0.85rem; min-height: 1.2em; }
+.msg-campo { color: var(--error-on-dark); font-size: 0.85rem; }
+.msg-campo:empty { display: none; }
 
 /* El margen iguala la altura de la etiqueta (0.8rem x 1.5) más el gap, para alinear el botón con los campos */
 .acciones { display: flex; align-items: center; margin-top: calc(0.8rem * 1.5 + 8px); }
@@ -234,8 +235,8 @@ select:focus, input:focus {
 ========================================= */
 .explorador {
   position: relative;
-  margin-top: 48px;
-  padding: clamp(20px, 3vw, 32px);
+  margin-top: 36px;
+  padding: clamp(16px, 2.5vw, 24px);
   background-color: var(--primary-red);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-panel);
@@ -247,7 +248,7 @@ select:focus, input:focus {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px 20px;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 .explorador h2 {
   font-size: var(--display-lg);
@@ -282,15 +283,15 @@ select:focus, input:focus {
 /* Cada atajo lleva su número de índice, como en un catálogo impreso */
 .atajos {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
   counter-reset: atajo;
 }
 .atajo {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-height: 56px;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
   padding: 8px 14px;
   font-size: 1rem;
   font-weight: 800;
@@ -323,7 +324,7 @@ select:focus, input:focus {
   border-radius: var(--radius-sm);
   animation: latido 1.2s ease-in-out infinite alternate;
 }
-.atajo-esqueleto { min-height: 56px; background-color: var(--white); opacity: 0.5; }
+.atajo-esqueleto { min-height: 44px; background-color: var(--white); opacity: 0.5; }
 .esq-titulo { height: 24px; width: 70%; }
 .esq-precio { height: 32px; width: 40%; }
 .esq-linea { height: 40px; width: 100%; margin-bottom: 10px; }
@@ -333,9 +334,9 @@ select:focus, input:focus {
    T3: RESULTADOS
    Cada repuesto es una entrada de catálogo: ficha oscura, talón con perforación
 ========================================= */
-#resultados { margin-top: 48px; counter-reset: lamina; }
+#resultados { margin-top: 28px; counter-reset: lamina; }
 .resumen {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   padding-bottom: 10px;
   border-bottom: 3px solid var(--text-main);
   font-size: 0.85rem;
@@ -500,7 +501,7 @@ td.num { font-size: 1.35rem; font-weight: 800; }
   main { padding: 32px 16px 56px; }
   .encabezado-interno { padding-left: 16px; padding-right: 16px; }
   .buscador { grid-template-columns: 1fr; padding: 20px 16px 16px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 5px 5px 0 var(--primary-red); }
-  .explorador { margin-top: 40px; box-shadow: 5px 5px 0 var(--dark-bg); }
+  .explorador { margin-top: 32px; box-shadow: 5px 5px 0 var(--dark-bg); }
   .boton { width: 100%; }
   .atajos { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
   .ruta-paso::after { display: none; }
