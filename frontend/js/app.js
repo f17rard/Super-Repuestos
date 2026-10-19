@@ -96,6 +96,7 @@ const ESQUELETOS_RESULTADOS = 3;
 function mostrarEsqueleto(texto) {
   const fila = `
     <article class="repuesto" aria-hidden="true">
+      <div class="repuesto-foto"></div>
       <div class="repuesto-cab">
         <span class="esqueleto esq-titulo"></span>
         <span class="esqueleto esq-precio"></span>
@@ -109,9 +110,7 @@ function mostrarEsqueleto(texto) {
 }
 
 function textoResumen(mostrados, total, hayFiltros) {
-  if (!hayFiltros) {
-    return total > mostrados ? `Repuestos más relevantes: ${mostrados} de ${total}` : "Repuestos más relevantes";
-  }
+  if (!hayFiltros) return "Catálogo de repuestos";
   if (total > mostrados) return `Mostrando ${mostrados} de ${total} repuestos, los más relevantes primero`;
   return `${total} ${total === 1 ? "repuesto encontrado" : "repuestos encontrados"}`;
 }
@@ -140,6 +139,7 @@ function mostrarResultados(repuestos, total, hayFiltros) {
       : `<p class="sucursal-vacia">Este repuesto no tiene sucursales registradas.</p>`;
     return `
       <article class="repuesto">
+        <div class="repuesto-foto">${r.imagen ? `<img src="${escapar(r.imagen)}" alt="${escapar(r.nombre)}" loading="lazy">` : ""}</div>
         <div class="repuesto-cab">
           <h2>${escapar(r.nombre)}</h2>
           ${r.descripcion ? `<p class="repuesto-desc">${escapar(r.descripcion)}</p>` : ""}

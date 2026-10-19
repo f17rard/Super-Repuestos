@@ -16,15 +16,16 @@ Endpoints:
   GET /api/marcas
   GET /api/modelos?marca=
   GET /api/anios?marca=&modelo=
-  GET /api/repuestos?marca=&modelo=&anio=&repuesto=
+  GET /api/repuestos?marca=&modelo=&anio=&repuesto=&limite=
+      Todos los filtros son opcionales. Sin ninguno devuelve el catálogo más relevante.
 
 Además sirve la carpeta ../frontend, así la página y la API comparten origen.
 """
 import logging
 import os
-import re
 from functools import lru_cache
 from pathlib import Path
+
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
@@ -44,6 +45,8 @@ T_INVENTARIO = os.getenv("TABLA_INVENTARIO", "inventario")      # id, repuesto_i
 T_SUCURSALES = os.getenv("TABLA_SUCURSALES", "sucursales")      # id, nombre, direccion
 
 PAGINA = 1000  # filas por petición a Supabase (su límite por defecto)
+LIMITE_RESULTADOS = 24  # repuestos que devuelve /api/repuestos si no se pide otro límite
+MAX_FILAS_RELEVANCIA = 5000  # filas que se traen para ordenar por relevancia
 
 app = FastAPI(title="API Buscador de repuestos")
 
@@ -54,9 +57,9 @@ app = FastAPI(title="API Buscador de repuestos")
 @lru_cache
 def get_db() -> Client:
     url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    key = os.getenv("SUPABASE_KEY")
     if not url or not key:
-        raise RuntimeError("Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en el archivo .env")
+        raise RuntimeError("Faltan SUPABASE_URL o SUPABASE_KEY en el archivo .env")
     return create_client(url, key)
 
 
@@ -73,16 +76,18 @@ def error_bd(exc: Exception) -> HTTPException:
     )
 
 
-def traer_todo(construir_consulta) -> list[dict]:
-    """Recorre las páginas de Supabase para no quedarse en el límite de 1000 filas."""
+def traer_todo(construir_consulta, maximo: int | None = None) -> list[dict]:
+    """Recorre las páginas de Supabase para no quedarse en el límite de 1000 filas.
+    Con `maximo` se detiene al juntar esa cantidad de filas."""
+    tamano = min(PAGINA, maximo) if maximo else PAGINA
     filas: list[dict] = []
     inicio = 0
     while True:
-        lote = construir_consulta().range(inicio, inicio + PAGINA - 1).execute().data
+        lote = construir_consulta().range(inicio, inicio + tamano - 1).execute().data
         filas.extend(lote)
-        if len(lote) < PAGINA:
-            return filas
-        inicio += PAGINA
+        if len(lote) < tamano or (maximo is not None and len(filas) >= maximo):
+            return filas[:maximo] if maximo is not None else filas
+        inicio += tamano
 
 
 def escapar_like(texto: str) -> str:
@@ -135,82 +140,90 @@ def listar_anios(
 
 
 # ---------------------------------------------------------------------------
-# Búsqueda por palabra clave, código o descripción (reemplaza busqueda T2 +T3)
+# T2 + T3: búsqueda de repuestos con precio y stock por sucursal
 # ---------------------------------------------------------------------------
-# Columnas donde se busca el texto. Cuando exista la columna del código del
-# repuesto, se agrega aquí:  CAMPOS_BUSQUEDA=nombre,descripcion,codigo
-CAMPOS_BUSQUEDA = [c.strip() for c in os.getenv("CAMPOS_BUSQUEDA", "nombre,descripcion").split(",") if c.strip()]
-PESO_CAMPO = {"nombre": 3, "codigo": 3, "descripcion": 1}  # para ordenar por relevancia
-MAX_TERMINOS = 6
+def armar_seleccion(con_vehiculo: bool) -> str:
+    """Columnas a pedir. El vehículo solo se une (!inner) si algún filtro lo usa (RN1)."""
+    inventario = f"{T_INVENTARIO} ( stock, {T_SUCURSALES} ( nombre, direccion ) )"
+    if not con_vehiculo:
+        return f"id, nombre, descripcion, precio_base, {inventario}"
+    return f"""
+        id, nombre, descripcion, precio_base,
+        {T_VEHICULOS}!inner (
+            anio,
+            {T_MODELOS}!inner ( nombre, {T_MARCAS}!inner ( nombre ) )
+        ),
+        {inventario}
+    """
 
 
-def terminos_de(texto: str) -> list[str]:
-    """Divide el texto en palabras. Quita caracteres que rompen el filtro or() de PostgREST."""
-    limpio = re.sub(r'[,()"\\]', " ", texto)
-    return limpio.split()[:MAX_TERMINOS]
+def puntuar_texto(nombre: str, palabras: list[str]) -> int:
+    """Más puntos mientras más al inicio y más completa sea la coincidencia con el texto."""
+    if not palabras:
+        return 0
+    nombre = nombre.lower()
+    texto = " ".join(palabras)
+    if nombre == texto:
+        return 100
+    if nombre.startswith(texto):
+        return 80
+    if f" {texto}" in nombre:
+        return 60
+    al_inicio = sum(1 for p in palabras if nombre.startswith(p) or f" {p}" in nombre)
+    return 20 + 5 * al_inicio
 
 
-def condicion_or(termino: str) -> str:
-    """'campo1.ilike."%t%",campo2.ilike."%t%"' -> la palabra aparece en ALGUNO de los campos."""
-    t = termino.replace("%", "\\\\%").replace("_", "\\\\_")  # % y _ literales
-    return ",".join(f'{campo}.ilike."%{t}%"' for campo in CAMPOS_BUSQUEDA)
+def ordenar_por_relevancia(repuestos: list[dict], palabras: list[str]) -> list[dict]:
+    """Primero la coincidencia con el texto, luego la disponibilidad real (RN3)."""
 
+    def clave(r: dict) -> tuple:
+        con_stock = sum(1 for s in r["sucursales"] if s["stock"] > 0)
+        stock_total = sum(s["stock"] for s in r["sucursales"])
+        puntos = puntuar_texto(r["nombre"], palabras)
+        return (-puntos, -con_stock, -stock_total, r["nombre"].lower())
 
-def relevancia(fila: dict, terminos: list[str]) -> int:
-    puntos = 0
-    for t in (x.lower() for x in terminos):
-        for campo in CAMPOS_BUSQUEDA:
-            if t in str(fila.get(campo) or "").lower():
-                puntos += PESO_CAMPO.get(campo, 1)
-    return puntos
+    return sorted(repuestos, key=clave)
 
 
 @app.get("/api/repuestos")
 def buscar_repuestos(
-    repuesto: str = Query("", description="Palabra clave, código o descripción"),
     marca: str | None = Query(None),
     modelo: str | None = Query(None),
     anio: int | None = Query(None),
+    repuesto: str | None = Query(None, max_length=100),
+    limite: int = Query(LIMITE_RESULTADOS, ge=1, le=100),
 ) -> dict:
-    terminos = terminos_de(repuesto)
-    hay_vehiculo = bool(marca or modelo or anio)
+    marca = (marca or "").strip() or None
+    modelo = (modelo or "").strip() or None
+    palabras = (repuesto or "").lower().split()
+    con_vehiculo = bool(marca or modelo or anio is not None)
+    seleccion = armar_seleccion(con_vehiculo)
 
-    if not terminos and not hay_vehiculo:
-        raise HTTPException(status_code=422, detail="Escribe un repuesto o selecciona un vehículo")
-
-    # !inner solo si se filtra por vehículo (RN1); sin filtro, no se descartan repuestos
-    inner = "!inner" if hay_vehiculo else ""
-    extras = "".join(f", {c}" for c in CAMPOS_BUSQUEDA if c not in ("nombre", "descripcion"))
-    seleccion = f"""
-        id, nombre, descripcion, precio_base{extras},
-        {T_VEHICULOS}{inner} (
-            anio,
-            {T_MODELOS}{inner} ( nombre, {T_MARCAS}{inner} ( nombre ) )
-        ),
-        {T_INVENTARIO} ( stock, {T_SUCURSALES} ( nombre, direccion ) )
-    """
-
-    try:
-        consulta = get_db().table(T_REPUESTOS).select(seleccion)
-        for t in terminos:                  # cada palabra debe aparecer (AND)...
-            consulta = consulta.or_(condicion_or(t))  # ...en nombre, código o descripción (OR)
-        if anio:
+    def construir_consulta():
+        # order("id") da un orden estable al paginar
+        consulta = get_db().table(T_REPUESTOS).select(seleccion).order("id")
+        # Todas las palabras deben aparecer en el nombre: "filtro aceite" halla "Filtro de aceite"
+        for palabra in palabras:
+            consulta = consulta.ilike("nombre", f"%{escapar_like(palabra)}%")
+        if anio is not None:
             consulta = consulta.eq(f"{T_VEHICULOS}.anio", anio)
         if modelo:
             consulta = consulta.eq(f"{T_VEHICULOS}.{T_MODELOS}.nombre", modelo)
         if marca:
             consulta = consulta.eq(f"{T_VEHICULOS}.{T_MODELOS}.{T_MARCAS}.nombre", marca)
-        filas = consulta.execute().data
+        return consulta
+
+    # Sin filtros no hay nada que ordenar: se piden solo las filas que se van a mostrar
+    maximo = MAX_FILAS_RELEVANCIA if (palabras or con_vehiculo) else limite
+    try:
+        filas = traer_todo(construir_consulta, maximo=maximo)
     except Exception as exc:
         raise error_bd(exc)
-
-    filas.sort(key=lambda f: relevancia(f, terminos), reverse=True)
 
     repuestos = [
         {
             "id": f["id"],
             "nombre": f["nombre"],
-            "codigo": f.get("codigo"),
             "descripcion": f.get("descripcion"),
             "precio": f["precio_base"],  # precio del catálogo (RN2)
             "sucursales": [              # stock por sucursal (RN3)
@@ -224,7 +237,12 @@ def buscar_repuestos(
         }
         for f in filas
     ]
-    return {"total": len(repuestos), "repuestos": repuestos}
+    repuestos = ordenar_por_relevancia(repuestos, palabras)
+    # Lista vacía = no se encontró (el mensaje de T5 lo decide el frontend).
+    # "total" cuenta todas las coincidencias; "repuestos" trae solo las más relevantes.
+    return {"total": len(repuestos), "repuestos": repuestos[:limite]}
+
+
 # ---------------------------------------------------------------------------
 # Sirve la página (debe ir al final, después de las rutas /api)
 # ---------------------------------------------------------------------------

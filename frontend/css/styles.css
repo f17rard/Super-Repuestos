@@ -259,13 +259,29 @@ select:focus, input:focus {
 .repuesto {
   counter-increment: lamina;
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  grid-template-columns: 150px minmax(0, 5fr) minmax(0, 7fr);
   margin-bottom: 28px;
   overflow: hidden;
   background-color: var(--white);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-hoja);
+}
+/* Espacio para la foto del repuesto; sin imagen muestra un marcador */
+.repuesto-foto {
+  display: grid;
+  place-items: center;
+  background-color: var(--dark-input);
+  border-right: 1px solid var(--dark-line);
+}
+.repuesto-foto img { width: 100%; height: 100%; object-fit: cover; }
+.repuesto-foto:empty::before {
+  content: "Sin imagen";
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dark-placeholder);
 }
 .repuesto-cab {
   position: relative;
@@ -403,7 +419,8 @@ td.num { font-size: 1.2rem; font-weight: 800; }
   .campo.ancho, .acciones { grid-column: 1 / -1; }
   .acciones { margin-top: 4px; }
   .encabezado-arte { opacity: 0.3; }
-  .repuesto { grid-template-columns: 1fr; }
+  .repuesto { grid-template-columns: 110px 1fr; }
+  .repuesto-detalle { grid-column: 1 / -1; }
   .repuesto-cab { padding-bottom: 56px; }
   .repuesto-detalle { border-left: 0; border-top: 2px dashed var(--border-light); }
   .repuesto-detalle::before { top: -11px; left: -11px; }
