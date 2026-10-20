@@ -51,11 +51,21 @@
     <span class="estado" id="estado" role="status" aria-live="polite"></span>
   </form>
 
-  <!-- ===== T3: Resultado de búsqueda ===== -->
-  <section id="resultados" aria-live="polite"></section>
+  <!-- ===== Layout: menú de categorías a la izquierda, resultados a la derecha ===== -->
+  <div class="contenido">
+    <aside class="menu-lateral">
+      <p class="menu-titulo">Categorías</p>
+      <div class="categorias" id="categorias" role="group" aria-label="Filtrar por categoría"></div>
+    </aside>
 
-  <!-- ===== T4 (sin stock), T5 (no encontrado) y T6 (error de inventario) ===== -->
-  <section id="mensajes" aria-live="polite"></section>
+    <div class="panel-resultados">
+      <!-- ===== T3: Resultado de búsqueda ===== -->
+      <section id="resultados" aria-live="polite"></section>
+
+      <!-- ===== T4 (sin stock), T5 (no encontrado) y T6 (error de inventario) ===== -->
+      <section id="mensajes" aria-live="polite"></section>
+    </div>
+  </div>
 </main>
 
 <script src="js/app.js" defer></script>

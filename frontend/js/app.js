@@ -27,22 +27,16 @@ function llenarLista(select, valores, textoInicial) {
   select.disabled = valores.length === 0;
 }
 
-/* ---------- Rediseño (HU-01): cinta de marcas y botón con imán ----------
-   La cinta repite las marcas que ya trae /api/marcas (solo adorno, no hace peticiones).
+/* ---------- Rediseño (HU-01): cinta de marcas estática y botón con imán ----------
+   La cinta lista las marcas que ya trae /api/marcas (solo adorno, sin animación).
    El imán mueve el botón hacia el puntero con transform, solo con ratón y sin "reduce motion". */
-const MARCAS_MINIMAS_CINTA = 12;
-const SEGUNDOS_POR_MARCA = 3;
 const FUERZA_IMAN = 0.2;
 
 function pintarCinta() {
   const marcas = [...$("marca").options].filter((o) => o.value).map((o) => o.text);
   if (!marcas.length) { $("cinta-marcas").innerHTML = ""; return; }
-  let mitad = [...marcas];
-  while (mitad.length < MARCAS_MINIMAS_CINTA) mitad = mitad.concat(marcas);
-  const items = mitad.map((m) => `<span class="cinta-item">${escapar(m)}</span>`).join("");
-  // Dos mitades iguales: la animación recorre -50% y el bucle no se nota
-  $("cinta-marcas").innerHTML = `<div class="cinta-pista">${items}${items}</div>`;
-  $("cinta-marcas").style.setProperty("--cinta-duracion", `${mitad.length * SEGUNDOS_POR_MARCA}s`);
+  const items = marcas.map((m) => `<span class="cinta-item">${escapar(m)}</span>`).join("");
+  $("cinta-marcas").innerHTML = `<div class="cinta-pista">${items}</div>`;
 }
 
 function activarIman(boton) {
@@ -93,6 +87,37 @@ $("modelo").addEventListener("change", (e) => cargarAnios($("marca").value, e.ta
 /* ---------- T3: resultado de búsqueda ---------- */
 const ESQUELETOS_RESULTADOS = 3;
 
+/* ---------- Filtros por categoría ----------
+   Los valores coinciden con las categorías válidas del backend (motor, electrico, …). */
+const CATEGORIAS = [
+  { valor: "motor", etiqueta: "Motor" },
+  { valor: "electrico", etiqueta: "Eléctrico" },
+  { valor: "frenos", etiqueta: "Frenos" },
+  { valor: "transmision", etiqueta: "Transmisión" },
+  { valor: "suspension", etiqueta: "Suspensión" },
+  { valor: "aire_acondicionado", etiqueta: "Aire acondicionado" },
+  { valor: "accesorios", etiqueta: "Accesorios" }
+];
+let categoriaActiva = "";
+
+function pintarCategorias() {
+  const boton = (valor, etiqueta) => {
+    const activa = categoriaActiva === valor;
+    return `<button type="button" class="cat-boton${activa ? " activa" : ""}" data-cat="${valor}" aria-pressed="${activa}">${etiqueta}</button>`;
+  };
+  $("categorias").innerHTML =
+    boton("", "Todas") + CATEGORIAS.map((c) => boton(c.valor, c.etiqueta)).join("");
+}
+
+$("categorias").addEventListener("click", (e) => {
+  const btn = e.target.closest(".cat-boton");
+  if (!btn) return;
+  if (categoriaActiva === btn.dataset.cat) return; // ya está activa, no relanza
+  categoriaActiva = btn.dataset.cat;
+  pintarCategorias();
+  buscarRepuestos();
+});
+
 function mostrarEsqueleto(texto) {
   const fila = `
     <article class="repuesto" aria-hidden="true">
@@ -131,11 +156,18 @@ function mostrarResultados(repuestos, total, hayFiltros) {
         </td>
         <td class="num ${s.stock > 0 ? "stock-ok" : "stock-cero"}">${escapar(s.stock)}</td>
       </tr>`).join("");
-    const tabla = sucursales.length
-      ? `<table>
-          <thead><tr><th>Sucursal</th><th class="num">Stock</th></tr></thead>
-          <tbody>${filas}</tbody>
-        </table>`
+    // Compacto por defecto: una sola línea de resumen; la tabla se despliega al hacer clic
+    const detalle = sucursales.length
+      ? `<details class="sucursales">
+          <summary>
+            <span>Stock por sucursal (${conStock}/${sucursales.length} con stock)</span>
+            <span class="sucursales-flecha" aria-hidden="true"></span>
+          </summary>
+          <table>
+            <thead><tr><th>Sucursal</th><th class="num">Stock</th></tr></thead>
+            <tbody>${filas}</tbody>
+          </table>
+        </details>`
       : `<p class="sucursal-vacia">Este repuesto no tiene sucursales registradas.</p>`;
     return `
       <article class="repuesto">
@@ -146,7 +178,7 @@ function mostrarResultados(repuestos, total, hayFiltros) {
           <span class="precio">${formatoPrecio.format(r.precio)}</span>
           <span class="disponibilidad ${conStock > 0 ? "stock-ok" : "stock-cero"}">${disponibilidad}</span>
         </div>
-        <div class="repuesto-detalle">${tabla}</div>
+        <div class="repuesto-detalle">${detalle}</div>
       </article>`;
   }).join("");
   $("resultados").innerHTML =
@@ -188,7 +220,8 @@ function leerFiltros() {
     marca: $("marca").value,
     modelo: $("modelo").value,
     anio: $("anio").value,
-    repuesto: $("repuesto").value.trim()
+    repuesto: $("repuesto").value.trim(),
+    categoria: categoriaActiva
   };
   return Object.fromEntries(Object.entries(filtros).filter(([, valor]) => valor));
 }
@@ -242,5 +275,6 @@ $("form-busqueda").addEventListener("submit", (e) => {
 });
 
 activarIman($("btn-buscar"));
+pintarCategorias();
 cargarMarcas();
 buscarRepuestos();

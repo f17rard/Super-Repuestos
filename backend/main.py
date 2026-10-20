@@ -8,7 +8,9 @@ Esquema de la base de datos:
   marcas      (id, nombre)
   modelos     (id, marca_id -> marcas.id, nombre)
   vehiculos   (id, modelo_id -> modelos.id, anio)
-  repuestos   (id, nombre, descripcion, precio_base, vehiculo_id -> vehiculos.id)
+  repuestos   (id, nombre, descripcion, precio_base, categoria, vehiculo_id -> vehiculos.id)
+              # categoria: NULL o valor del catálogo; integridad garantizada por
+              # repuestos_categoria_chk (ver backend/migrations/001_repuestos_categoria_chk.sql)
   sucursales  (id, nombre, direccion)
   inventario  (id, repuesto_id -> repuestos.id, sucursal_id -> sucursales.id, stock)
 
@@ -16,7 +18,7 @@ Endpoints:
   GET /api/marcas
   GET /api/modelos?marca=
   GET /api/anios?marca=&modelo=
-  GET /api/repuestos?marca=&modelo=&anio=&repuesto=&limite=
+  GET /api/repuestos?marca=&modelo=&anio=&repuesto=&categoria=&limite=
       Todos los filtros son opcionales. Sin ninguno devuelve el catálogo más relevante.
 
 Además sirve la carpeta ../frontend, así la página y la API comparten origen.
@@ -40,13 +42,19 @@ log = logging.getLogger("buscador")
 T_MARCAS = os.getenv("TABLA_MARCAS", "marcas")                  # id, nombre
 T_MODELOS = os.getenv("TABLA_MODELOS", "modelos")               # id, marca_id, nombre
 T_VEHICULOS = os.getenv("TABLA_VEHICULOS", "vehiculos")         # id, modelo_id, anio
-T_REPUESTOS = os.getenv("TABLA_REPUESTOS", "repuestos")         # id, nombre, descripcion, precio_base, vehiculo_id
+T_REPUESTOS = os.getenv("TABLA_REPUESTOS", "repuestos")         # id, nombre, descripcion, precio_base, categoria, vehiculo_id
 T_INVENTARIO = os.getenv("TABLA_INVENTARIO", "inventario")      # id, repuesto_id, sucursal_id, stock
 T_SUCURSALES = os.getenv("TABLA_SUCURSALES", "sucursales")      # id, nombre, direccion
 
 PAGINA = 1000  # filas por petición a Supabase (su límite por defecto)
 LIMITE_RESULTADOS = 24  # repuestos que devuelve /api/repuestos si no se pide otro límite
 MAX_FILAS_RELEVANCIA = 5000  # filas que se traen para ordenar por relevancia
+
+# Categorías aceptadas por el filtro (mismos valores que el frontend y controlDeErrores.py)
+CATEGORIAS_VALIDAS = {
+    "motor", "electrico", "frenos", "transmision",
+    "suspension", "aire_acondicionado", "accesorios",
+}
 
 app = FastAPI(title="API Buscador de repuestos")
 
@@ -191,10 +199,14 @@ def buscar_repuestos(
     modelo: str | None = Query(None),
     anio: int | None = Query(None),
     repuesto: str | None = Query(None, max_length=100),
+    categoria: str | None = Query(None),
     limite: int = Query(LIMITE_RESULTADOS, ge=1, le=100),
 ) -> dict:
     marca = (marca or "").strip() or None
     modelo = (modelo or "").strip() or None
+    categoria = (categoria or "").strip() or None
+    if categoria and categoria not in CATEGORIAS_VALIDAS:
+        raise HTTPException(status_code=422, detail="Categoría no válida.")
     palabras = (repuesto or "").lower().split()
     con_vehiculo = bool(marca or modelo or anio is not None)
     seleccion = armar_seleccion(con_vehiculo)
@@ -211,10 +223,12 @@ def buscar_repuestos(
             consulta = consulta.eq(f"{T_VEHICULOS}.{T_MODELOS}.nombre", modelo)
         if marca:
             consulta = consulta.eq(f"{T_VEHICULOS}.{T_MODELOS}.{T_MARCAS}.nombre", marca)
+        if categoria:
+            consulta = consulta.eq("categoria", categoria)
         return consulta
 
     # Sin filtros no hay nada que ordenar: se piden solo las filas que se van a mostrar
-    maximo = MAX_FILAS_RELEVANCIA if (palabras or con_vehiculo) else limite
+    maximo = MAX_FILAS_RELEVANCIA if (palabras or con_vehiculo or categoria) else limite
     try:
         filas = traer_todo(construir_consulta, maximo=maximo)
     except Exception as exc:
