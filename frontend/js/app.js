@@ -31,140 +31,35 @@ function llenarLista(select, valores, textoInicial) {
   select.disabled = valores.length === 0;
 }
 
-<<<<<<< Updated upstream
 /* ---------- Listas en cascada (marca > modelo > año) ---------- */
-=======
-/* ---------- Rediseño (HU-01): cinta de marcas y botón con imán ----------
-   La cinta repite las marcas que ya trae /api/marcas (solo adorno, no hace peticiones).
-   El imán mueve el botón hacia el puntero con transform, solo con ratón y sin "reduce motion". */
-const MARCAS_MINIMAS_CINTA = 12;
-const SEGUNDOS_POR_MARCA = 3;
-const FUERZA_IMAN = 0.2;
-
-function pintarCinta() {
-  const marcas = [...$("marca").options].filter((o) => o.value).map((o) => o.text);
-  if (!marcas.length) { $("cinta-marcas").innerHTML = ""; return; }
-  let mitad = [...marcas];
-  while (mitad.length < MARCAS_MINIMAS_CINTA) mitad = mitad.concat(marcas);
-  const items = mitad.map((m) => `<span class="cinta-item">${escapar(m)}</span>`).join("");
-  // Dos mitades iguales: la animación recorre -50% y el bucle no se nota
-  $("cinta-marcas").innerHTML = `<div class="cinta-pista">${items}${items}</div>`;
-  $("cinta-marcas").style.setProperty("--cinta-duracion", `${mitad.length * SEGUNDOS_POR_MARCA}s`);
-}
-
-function activarIman(boton) {
-  const permitido = window.matchMedia("(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)");
-  if (!permitido.matches) return;
-  boton.addEventListener("pointermove", (e) => {
-    const caja = boton.getBoundingClientRect();
-    boton.style.setProperty("--iman-x", `${(e.clientX - caja.left - caja.width / 2) * FUERZA_IMAN}px`);
-    boton.style.setProperty("--iman-y", `${(e.clientY - caja.top - caja.height / 2) * FUERZA_IMAN}px`);
-  });
-  boton.addEventListener("pointerleave", () => {
-    boton.style.removeProperty("--iman-x");
-    boton.style.removeProperty("--iman-y");
-  });
-}
-
-/* ---------- Rediseño (HU-01): explorador de vehículo ----------
-   Muestra como botones las opciones del siguiente campo vacío (marca, modelo o año)
-   para elegir con un toque. Los selects siguen siendo la fuente de verdad: el
-   explorador solo los lee y les dispara "change", así no cambia ningún flujo de T2. */
-const PASOS_EXPLORADOR = [
-  { id: "marca", etiqueta: "marca", titulo: "Elige la marca" },
-  { id: "modelo", etiqueta: "modelo", titulo: "Elige el modelo" },
-  { id: "anio", etiqueta: "año", titulo: "Elige el año" }
-];
-const ESQUELETOS_ATAJOS = 12;
-const ESQUELETOS_RESULTADOS = 3;
-
-function pintarExplorador(cargando = false) {
-  const paso = PASOS_EXPLORADOR.find((p) => !$(p.id).value);
-  $("ruta-vehiculo").innerHTML = PASOS_EXPLORADOR.filter((p) => $(p.id).value).map((p) => `
-    <button type="button" class="ruta-paso" data-paso="${p.id}" aria-label="Cambiar ${p.etiqueta}: ${escapar($(p.id).value)}">
-      ${escapar($(p.id).value)}
-    </button>`).join("");
-
-  if (!paso) {
-    $("titulo-explorador").textContent = "Vehículo elegido";
-    $("atajos").innerHTML = ""; // vehículo completo: solo queda la ruta elegida
-    return;
-  }
-
-  $("titulo-explorador").textContent = paso.titulo;
-  if (cargando) {
-    $("atajos").innerHTML = `<span class="esqueleto atajo-esqueleto"></span>`.repeat(ESQUELETOS_ATAJOS);
-    return;
-  }
-
-  const opciones = [...$(paso.id).options].filter((o) => o.value);
-  $("atajos").innerHTML = opciones.length
-    ? opciones.map((o) =>
-        `<button type="button" class="atajo" data-paso="${paso.id}" data-valor="${escapar(o.value)}">${escapar(o.text)}</button>`
-      ).join("")
-    : `<p class="atajos-vacio">No hay opciones para mostrar por ahora.</p>`;
-}
-
-$("explorador").addEventListener("click", (e) => {
-  const boton = e.target.closest("button[data-paso]");
-  if (!boton) return;
-  const eligiendo = boton.classList.contains("atajo");
-  const select = $(boton.dataset.paso);
-  select.value = eligiendo ? boton.dataset.valor : "";
-  select.dispatchEvent(new Event("change"));
-  // Con el año elegido el vehículo está completo: el cursor pasa al repuesto
-  if (eligiendo && boton.dataset.paso === "anio") $("repuesto").focus();
-});
-
-/* ---------- T2: listas en cascada (marca > modelo > año) ---------- */
->>>>>>> Stashed changes
 async function cargarMarcas() {
-  pintarExplorador(true);
   try {
     llenarLista($("marca"), await api("marcas"), "Selecciona");
   } catch (err) {
     console.error(err);
     $("estado").textContent = "No se pudieron cargar las marcas.";
   }
-  pintarCinta();
-  pintarExplorador();
 }
 
 async function cargarModelos(marca) {
-<<<<<<< Updated upstream
   llenarLista($("modelo"), [], "Selecciona");
   llenarLista($("anio"), [], "Selecciona");
   if (!marca) return;
-=======
-  llenarLista($("modelo"), [], "Selecciona un modelo");
-  llenarLista($("anio"), [], "Selecciona un año");
-  if (!marca) { pintarExplorador(); return; }
-  pintarExplorador(true);
->>>>>>> Stashed changes
   try {
     llenarLista($("modelo"), await api("modelos", { marca }), "Selecciona");
   } catch (err) { console.error(err); }
-  pintarExplorador();
 }
 
 async function cargarAnios(marca, modelo) {
-<<<<<<< Updated upstream
   llenarLista($("anio"), [], "Selecciona");
   if (!marca || !modelo) return;
-=======
-  llenarLista($("anio"), [], "Selecciona un año");
-  if (!marca || !modelo) { pintarExplorador(); return; }
-  pintarExplorador(true);
->>>>>>> Stashed changes
   try {
     llenarLista($("anio"), await api("anios", { marca, modelo }), "Selecciona");
   } catch (err) { console.error(err); }
-  pintarExplorador();
 }
 
 $("marca").addEventListener("change", (e) => cargarModelos(e.target.value));
 $("modelo").addEventListener("change", (e) => cargarAnios($("marca").value, e.target.value));
-$("anio").addEventListener("change", () => pintarExplorador());
 
 /* =====================================================================
    BÚSQUEDA POR TEXTO (palabra clave, código o descripción)
@@ -175,67 +70,12 @@ function terminosDe(texto) {
   return texto.replace(/[,()"\\]/g, " ").split(/\s+/).filter(Boolean).slice(0, MAX_TERMINOS);
 }
 
-<<<<<<< Updated upstream
 /* Un repuesto coincide si CADA palabra aparece en nombre, código o descripción.
    Es el mismo criterio del backend (AND entre palabras, OR entre campos) y
    garantiza que solo se muestren resultados que contienen lo escrito. */
 function coincide(repuesto, terminos) {
   const campos = normalizar([repuesto.nombre, repuesto.codigo, repuesto.descripcion].join(" "));
   return terminos.every((t) => campos.includes(normalizar(t)));
-=======
-/* ---------- T3: resultado de búsqueda ---------- */
-function mostrarEsqueleto() {
-  const fila = `
-    <article class="repuesto" aria-hidden="true">
-      <div class="repuesto-cab">
-        <span class="esqueleto esq-titulo"></span>
-        <span class="esqueleto esq-precio"></span>
-      </div>
-      <div class="repuesto-detalle">
-        <span class="esqueleto esq-linea"></span>
-        <span class="esqueleto esq-linea"></span>
-      </div>
-    </article>`;
-  $("resultados").innerHTML = `<p class="resumen">Buscando repuestos…</p>` + fila.repeat(ESQUELETOS_RESULTADOS);
-}
-
-function mostrarResultados(repuestos) {
-  const total = repuestos.length;
-  const filasRepuestos = repuestos.map((r) => {
-    // Primero las sucursales con más stock: el mecánico ve de inmediato dónde está la pieza
-    const sucursales = [...r.sucursales].sort((a, b) => b.stock - a.stock);
-    const conStock = sucursales.filter((s) => s.stock > 0).length;
-    const disponibilidad = conStock > 0
-      ? `En stock en ${conStock} de ${sucursales.length} ${sucursales.length === 1 ? "sucursal" : "sucursales"}`
-      : "Sin stock";
-    const filas = sucursales.map((s) => `
-      <tr>
-        <td>
-          <span class="sucursal-nombre">${escapar(s.nombre)}</span>
-          ${s.direccion ? `<span class="sucursal-direccion">${escapar(s.direccion)}</span>` : ""}
-        </td>
-        <td class="num ${s.stock > 0 ? "stock-ok" : "stock-cero"}">${escapar(s.stock)}</td>
-      </tr>`).join("");
-    const tabla = sucursales.length
-      ? `<table>
-          <thead><tr><th>Sucursal</th><th class="num">Stock</th></tr></thead>
-          <tbody>${filas}</tbody>
-        </table>`
-      : `<p class="sucursal-vacia">Este repuesto no tiene sucursales registradas.</p>`;
-    return `
-      <article class="repuesto">
-        <div class="repuesto-cab">
-          <h2>${escapar(r.nombre)}</h2>
-          ${r.descripcion ? `<p class="repuesto-desc">${escapar(r.descripcion)}</p>` : ""}
-          <span class="precio">${formatoPrecio.format(r.precio)}</span>
-          <span class="disponibilidad ${conStock > 0 ? "stock-ok" : "stock-cero"}">${disponibilidad}</span>
-        </div>
-        <div class="repuesto-detalle">${tabla}</div>
-      </article>`;
-  }).join("");
-  $("resultados").innerHTML =
-    `<p class="resumen">${total} ${total === 1 ? "repuesto encontrado" : "repuestos encontrados"}</p>` + filasRepuestos;
->>>>>>> Stashed changes
 }
 
 /* Marca con <mark> las palabras buscadas (el texto se escapa antes de insertarlo) */
@@ -470,7 +310,6 @@ $("form-busqueda").addEventListener("submit", async (e) => {
   limpiarPantalla();
   if (!validar()) return;
 
-<<<<<<< Updated upstream
   const texto = $("repuesto").value.trim();
   const marca = $("marca").value;
   const vehiculo = marca ? { marca, modelo: $("modelo").value, anio: $("anio").value } : null;
@@ -485,21 +324,6 @@ $("form-busqueda").addEventListener("submit", async (e) => {
 
   try {
     const { repuestos } = await api("repuestos", params);
-=======
-  const boton = $("btn-buscar");
-  boton.disabled = true;
-  $("estado").textContent = "Buscando…";
-  mostrarEsqueleto();
-
-  try {
-    const { repuestos } = await api("repuestos", {
-      marca: $("marca").value,
-      modelo: $("modelo").value,
-      anio: $("anio").value,
-      repuesto: $("repuesto").value.trim()
-    });
-    $("resultados").innerHTML = ""; // quita el esqueleto de carga
->>>>>>> Stashed changes
 
     // Solo coincidencias con lo escrito (el backend ya filtra; aquí se garantiza)
     const terminos = terminosDe(texto);
@@ -529,16 +353,11 @@ $("form-busqueda").addEventListener("submit", async (e) => {
     $("zona-resultados").scrollIntoView({ behavior: reducir ? "auto" : "smooth", block: "start" });
   } catch (err) {
     console.error(err);
-<<<<<<< Updated upstream
     $("zona-resultados").hidden = false; // para que se vea el mensaje de T6
-=======
-    $("resultados").innerHTML = "";
->>>>>>> Stashed changes
     mostrarErrorInventario(err); // el backend responde 503 si la BD no responde
   } finally {
     setCargando(false);
   }
 });
 
-activarIman($("btn-buscar"));
 cargarMarcas();

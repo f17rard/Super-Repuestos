@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<<<<<<< Updated upstream
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Súper Repuestos El Salvador - Buscador</title>
@@ -150,74 +149,5 @@
   </footer>
 
   <script src="js/app.js" defer></script>
-=======
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Busca repuestos por marca, modelo y año y consulta su precio y el stock en cada sucursal.">
-<title>Buscador de repuestos</title>
-<link rel="stylesheet" href="css/styles.css">
-</head>
-<body>
-<header class="encabezado">
-  <!-- Rediseño: arte decorativo (disco rojo y engranaje), sin contenido para lectores de pantalla -->
-  <div class="encabezado-arte" aria-hidden="true">
-    <svg class="engranaje" viewBox="-100 -100 200 200" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"><polygon points="77.3,-10.5 95.8,-6.9 95.8,6.9 77.3,10.5 74.2,24.1 89.3,35.3 83.3,47.8 65.1,43.0 56.4,53.9 65.1,70.6 54.3,79.2 40.0,67.0 27.4,73.0 28.0,91.8 14.6,94.9 7.0,77.7 -7.0,77.7 -14.6,94.9 -28.0,91.8 -27.4,73.0 -40.0,67.0 -54.3,79.2 -65.1,70.6 -56.4,53.9 -65.1,43.0 -83.3,47.8 -89.3,35.3 -74.2,24.1 -77.3,10.5 -95.8,6.9 -95.8,-6.9 -77.3,-10.5 -74.2,-24.1 -89.3,-35.3 -83.3,-47.8 -65.1,-43.0 -56.4,-53.9 -65.1,-70.6 -54.3,-79.2 -40.0,-67.0 -27.4,-73.0 -28.0,-91.8 -14.6,-94.9 -7.0,-77.7 7.0,-77.7 14.6,-94.9 28.0,-91.8 27.4,-73.0 40.0,-67.0 54.3,-79.2 65.1,-70.6 56.4,-53.9 65.1,-43.0 83.3,-47.8 89.3,-35.3 74.2,-24.1"/><circle r="62"/><circle r="24"/><line x1="30.0" y1="0.0" x2="56.0" y2="0.0"/><line x1="15.0" y1="26.0" x2="28.0" y2="48.5"/><line x1="-15.0" y1="26.0" x2="-28.0" y2="48.5"/><line x1="-30.0" y1="0.0" x2="-56.0" y2="0.0"/><line x1="-15.0" y1="-26.0" x2="-28.0" y2="-48.5"/><line x1="15.0" y1="-26.0" x2="28.0" y2="-48.5"/></svg>
-  </div>
-  <div class="encabezado-interno">
-    <h1><span class="titulo-fuerte">Buscador</span> <span class="titulo-acento">de repuestos</span></h1>
-    <p class="sub">Elige el vehículo y escribe el repuesto para ver su precio y el stock por sucursal.</p>
-  </div>
-  <!-- Rediseño: cinta con las marcas del catálogo (se llena desde /api/marcas) -->
-  <div class="cinta" id="cinta-marcas" aria-hidden="true"></div>
-</header>
-
-<main>
-
-  <!-- ===== T2: Buscador de repuestos ===== -->
-  <form id="form-busqueda" class="buscador" novalidate>
-    <div class="campo" id="campo-marca">
-      <label for="marca">Marca</label>
-      <select id="marca" required><option value="">Selecciona una marca</option></select>
-      <span class="msg-campo" id="err-marca"></span>
-    </div>
-    <div class="campo" id="campo-modelo">
-      <label for="modelo">Modelo</label>
-      <select id="modelo" required disabled><option value="">Selecciona un modelo</option></select>
-      <span class="msg-campo" id="err-modelo"></span>
-    </div>
-    <div class="campo" id="campo-anio">
-      <label for="anio">Año</label>
-      <select id="anio" required disabled><option value="">Selecciona un año</option></select>
-      <span class="msg-campo" id="err-anio"></span>
-    </div>
-    <div class="campo ancho" id="campo-repuesto">
-      <label for="repuesto">Repuesto</label>
-      <input id="repuesto" type="text" autocomplete="off" placeholder="Por ejemplo: filtro de aceite" required>
-      <span class="msg-campo" id="err-repuesto"></span>
-    </div>
-    <div class="acciones">
-      <button type="submit" id="btn-buscar" class="boton">Buscar</button>
-    </div>
-    <span class="estado" id="estado" role="status" aria-live="polite"></span>
-  </form>
-
-  <!-- ===== Rediseño: explorador de vehículo (atajos sobre los campos de arriba) ===== -->
-  <section id="explorador" class="explorador" aria-labelledby="titulo-explorador">
-    <div class="explorador-cab">
-      <h2 id="titulo-explorador">Elige la marca</h2>
-      <div id="ruta-vehiculo" class="ruta"></div>
-    </div>
-    <div id="atajos" class="atajos" aria-live="polite"></div>
-  </section>
-
-  <!-- ===== T3: Resultado de búsqueda ===== -->
-  <section id="resultados" aria-live="polite"></section>
-
-  <!-- ===== T4 (sin stock), T5 (no encontrado) y T6 (error de inventario) ===== -->
-  <section id="mensajes" aria-live="polite"></section>
-</main>
-
-<script src="js/app.js" defer></script>
->>>>>>> Stashed changes
 </body>
 </html>
