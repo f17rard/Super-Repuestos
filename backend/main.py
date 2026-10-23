@@ -54,7 +54,7 @@ app = FastAPI(title="API Buscador de repuestos")
 @lru_cache
 def get_db() -> Client:
     url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_KEY")
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     if not url or not key:
         raise RuntimeError("Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en el archivo .env")
     return create_client(url, key)
