@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Detalle del repuesto, imágenes, valoración y disponibilidad por sucursal.">
+  <title>Detalle del repuesto | Super-Repuestos</title>
+  <link rel="stylesheet" href="css/detalle.css">
+</head>
+<body>
+  <header class="detalle-header">
+    <a class="marca-sitio" href="index.html" aria-label="Volver al catálogo">
+      <span class="marca-icono" aria-hidden="true">⚙</span>
+      <span>SUPER-<b>REPUESTOS</b></span>
+    </a>
+    <a class="volver" href="index.html">← Volver al catálogo</a>
+  </header>
+
+  <main class="detalle-main">
+    <p class="miga">CATÁLOGO / <span>DETALLE DEL PRODUCTO</span></p>
+    <div id="estado-detalle" class="estado-detalle" role="status" aria-live="polite">Cargando producto…</div>
+
+    <section id="producto-detalle" class="producto-layout" hidden>
+      <div class="galeria panel">
+        <div class="foto-principal-wrap">
+          <img id="foto-principal" class="foto-principal" alt="">
+          <span id="sin-foto" class="sin-foto" hidden>IMAGEN NO DISPONIBLE</span>
+        </div>
+        <div id="miniaturas" class="miniaturas" aria-label="Imágenes del producto"></div>
+      </div>
+
+      <section class="producto-info panel" aria-labelledby="nombre-producto">
+        <p class="etiqueta-roja">REPUESTO AUTOMOTRIZ</p>
+        <h1 id="nombre-producto">Producto</h1>
+        <div class="valoracion-resumen">
+          <span id="estrellas" class="estrellas" aria-label="Sin valoraciones">☆☆☆☆☆</span>
+          <span id="resumen-valoraciones">Sin valoraciones todavía</span>
+        </div>
+        <p id="descripcion-producto" class="descripcion">Sin descripción disponible.</p>
+        <div class="precio-bloque">
+          <span class="precio-label">PRECIO BASE</span>
+          <strong id="precio-producto" class="precio">$0.00</strong>
+        </div>
+        <button id="btn-favorito" class="btn-favorito" type="button" aria-pressed="false">
+          <span aria-hidden="true">♡</span> Agregar a favoritos
+        </button>
+        <p id="estado-favorito" class="texto-ayuda" aria-live="polite"></p>
+
+        <section class="sucursales-bloque" aria-labelledby="titulo-sucursales">
+          <h2 id="titulo-sucursales">Disponibilidad por sucursal</h2>
+          <div class="tabla-scroll">
+            <table>
+              <thead><tr><th>Sucursal</th><th>Dirección</th><th>Existencias</th></tr></thead>
+              <tbody id="filas-sucursales"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </section>
+
+    <section id="opiniones" class="opiniones panel" hidden>
+      <div class="opiniones-cabecera">
+        <div>
+          <p class="etiqueta-roja">EXPERIENCIAS DE MECÁNICOS</p>
+          <h2>Valoraciones y opiniones</h2>
+        </div>
+        <p id="promedio-opiniones" class="promedio-grande">—<span>/5</span></p>
+      </div>
+      <form id="form-valoracion" class="form-valoracion">
+        <label for="puntuacion">Tu puntuación</label>
+        <select id="puntuacion" required>
+          <option value="">Selecciona</option>
+          <option value="5">5 — Excelente</option>
+          <option value="4">4 — Muy bueno</option>
+          <option value="3">3 — Bueno</option>
+          <option value="2">2 — Regular</option>
+          <option value="1">1 — Malo</option>
+        </select>
+        <label for="opinion">Tu opinión</label>
+        <textarea id="opinion" rows="3" maxlength="1500" placeholder="Cuéntales a otros mecánicos tu experiencia…" required></textarea>
+        <button class="btn-principal" type="submit">Publicar valoración</button>
+        <p id="estado-valoracion" class="texto-ayuda" aria-live="polite"></p>
+      </form>
+      <div id="lista-opiniones" class="lista-opiniones"></div>
+    </section>
+  </main>
+  <script src="js/detalle.js" defer></script>
+</body>
+</html>
