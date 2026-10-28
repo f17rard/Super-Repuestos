@@ -4,6 +4,8 @@
    ===================================================================== */
 const $ = (id) => document.getElementById(id);
 const MONEDA = { locale: "es-SV", codigo: "USD" };
+const SUPABASE_STORAGE_URL =
+  "https://wrpkjszpuwzobpsvxfhk.supabase.co/storage/v1/object/public/repuestos_imagenes";
 const formatoPrecio = new Intl.NumberFormat(MONEDA.locale, { style: "currency", currency: MONEDA.codigo });
 const escapar = (s) => String(s).replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -171,7 +173,9 @@ function mostrarResultados(repuestos, total, hayFiltros) {
       : `<p class="sucursal-vacia">Este repuesto no tiene sucursales registradas.</p>`;
     return `
       <article class="repuesto">
-        <div class="repuesto-foto">${r.imagen ? `<img src="${escapar(r.imagen)}" alt="${escapar(r.nombre)}" loading="lazy">` : ""}</div>
+        <div class="repuesto-foto">${r.imagen
+          ? `<img src="${escapar(`${SUPABASE_STORAGE_URL}/${r.imagen.split("/").map(encodeURIComponent).join("/")}`)}" alt="${escapar(r.nombre)}" loading="lazy">`
+          : ""}</div>
         <div class="repuesto-cab">
           <h2>${escapar(r.nombre)}</h2>
           ${r.descripcion ? `<p class="repuesto-desc">${escapar(r.descripcion)}</p>` : ""}
