@@ -154,9 +154,9 @@ def armar_seleccion(con_vehiculo: bool) -> str:
     """Columnas a pedir. El vehículo solo se une (!inner) si algún filtro lo usa (RN1)."""
     inventario = f"{T_INVENTARIO} ( stock, {T_SUCURSALES} ( nombre, direccion ) )"
     if not con_vehiculo:
-        return f"id, nombre, descripcion, precio_base, {inventario}"
+        return f"id, nombre, descripcion, precio_base, imagen_path, {inventario}"
     return f"""
-        id, nombre, descripcion, precio_base,
+        id, nombre, descripcion, precio_base, imagen_path,
         {T_VEHICULOS}!inner (
             anio,
             {T_MODELOS}!inner ( nombre, {T_MARCAS}!inner ( nombre ) )
@@ -239,6 +239,7 @@ def buscar_repuestos(
             "id": f["id"],
             "nombre": f["nombre"],
             "descripcion": f.get("descripcion"),
+            "imagen_path": f.get("imagen_path"),
             "precio": f["precio_base"],  # precio del catálogo (RN2)
             "sucursales": [              # stock por sucursal (RN3)
                 {
