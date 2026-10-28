@@ -239,7 +239,7 @@ def buscar_repuestos(
             "id": f["id"],
             "nombre": f["nombre"],
             "descripcion": f.get("descripcion"),
-            "imagen_path": f.get("imagen_path"),
+            "imagen": f.get("imagen_path"),   # <- agregar esta línea
             "precio": f["precio_base"],  # precio del catálogo (RN2)
             "sucursales": [              # stock por sucursal (RN3)
                 {
