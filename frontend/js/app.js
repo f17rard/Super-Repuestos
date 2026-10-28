@@ -27,22 +27,16 @@ function llenarLista(select, valores, textoInicial) {
   select.disabled = valores.length === 0;
 }
 
-/* ---------- Rediseño (HU-01): cinta de marcas y botón con imán ----------
-   La cinta repite las marcas que ya trae /api/marcas (solo adorno, no hace peticiones).
+/* ---------- Rediseño (HU-01): cinta de marcas estática y botón con imán ----------
+   La cinta lista las marcas que ya trae /api/marcas (solo adorno, sin animación).
    El imán mueve el botón hacia el puntero con transform, solo con ratón y sin "reduce motion". */
-const MARCAS_MINIMAS_CINTA = 12;
-const SEGUNDOS_POR_MARCA = 3;
 const FUERZA_IMAN = 0.2;
 
 function pintarCinta() {
   const marcas = [...$("marca").options].filter((o) => o.value).map((o) => o.text);
   if (!marcas.length) { $("cinta-marcas").innerHTML = ""; return; }
-  let mitad = [...marcas];
-  while (mitad.length < MARCAS_MINIMAS_CINTA) mitad = mitad.concat(marcas);
-  const items = mitad.map((m) => `<span class="cinta-item">${escapar(m)}</span>`).join("");
-  // Dos mitades iguales: la animación recorre -50% y el bucle no se nota
-  $("cinta-marcas").innerHTML = `<div class="cinta-pista">${items}${items}</div>`;
-  $("cinta-marcas").style.setProperty("--cinta-duracion", `${mitad.length * SEGUNDOS_POR_MARCA}s`);
+  const items = marcas.map((m) => `<span class="cinta-item">${escapar(m)}</span>`).join("");
+  $("cinta-marcas").innerHTML = `<div class="cinta-pista">${items}</div>`;
 }
 
 function activarIman(boton) {
@@ -59,59 +53,8 @@ function activarIman(boton) {
   });
 }
 
-/* ---------- Rediseño (HU-01): explorador de vehículo ----------
-   Muestra como botones las opciones del siguiente campo vacío (marca, modelo o año)
-   para elegir con un toque. Los selects siguen siendo la fuente de verdad: el
-   explorador solo los lee y les dispara "change", así no cambia ningún flujo de T2. */
-const PASOS_EXPLORADOR = [
-  { id: "marca", etiqueta: "marca", titulo: "Elige la marca" },
-  { id: "modelo", etiqueta: "modelo", titulo: "Elige el modelo" },
-  { id: "anio", etiqueta: "año", titulo: "Elige el año" }
-];
-const ESQUELETOS_ATAJOS = 12;
-const ESQUELETOS_RESULTADOS = 3;
-
-function pintarExplorador(cargando = false) {
-  const paso = PASOS_EXPLORADOR.find((p) => !$(p.id).value);
-  $("ruta-vehiculo").innerHTML = PASOS_EXPLORADOR.filter((p) => $(p.id).value).map((p) => `
-    <button type="button" class="ruta-paso" data-paso="${p.id}" aria-label="Cambiar ${p.etiqueta}: ${escapar($(p.id).value)}">
-      ${escapar($(p.id).value)}
-    </button>`).join("");
-
-  if (!paso) {
-    $("titulo-explorador").textContent = "Vehículo elegido";
-    $("atajos").innerHTML = ""; // vehículo completo: solo queda la ruta elegida
-    return;
-  }
-
-  $("titulo-explorador").textContent = paso.titulo;
-  if (cargando) {
-    $("atajos").innerHTML = `<span class="esqueleto atajo-esqueleto"></span>`.repeat(ESQUELETOS_ATAJOS);
-    return;
-  }
-
-  const opciones = [...$(paso.id).options].filter((o) => o.value);
-  $("atajos").innerHTML = opciones.length
-    ? opciones.map((o) =>
-        `<button type="button" class="atajo" data-paso="${paso.id}" data-valor="${escapar(o.value)}">${escapar(o.text)}</button>`
-      ).join("")
-    : `<p class="atajos-vacio">No hay opciones para mostrar por ahora.</p>`;
-}
-
-$("explorador").addEventListener("click", (e) => {
-  const boton = e.target.closest("button[data-paso]");
-  if (!boton) return;
-  const eligiendo = boton.classList.contains("atajo");
-  const select = $(boton.dataset.paso);
-  select.value = eligiendo ? boton.dataset.valor : "";
-  select.dispatchEvent(new Event("change"));
-  // Con el año elegido el vehículo está completo: el cursor pasa al repuesto
-  if (eligiendo && boton.dataset.paso === "anio") $("repuesto").focus();
-});
-
 /* ---------- T2: listas en cascada (marca > modelo > año) ---------- */
 async function cargarMarcas() {
-  pintarExplorador(true);
   try {
     llenarLista($("marca"), await api("marcas"), "Selecciona una marca");
   } catch (err) {
@@ -119,56 +62,66 @@ async function cargarMarcas() {
     $("estado").textContent = "No se pudieron cargar las marcas.";
   }
   pintarCinta();
-  pintarExplorador();
 }
 
 async function cargarModelos(marca) {
   llenarLista($("modelo"), [], "Selecciona un modelo");
   llenarLista($("anio"), [], "Selecciona un año");
-  if (!marca) { pintarExplorador(); return; }
-  pintarExplorador(true);
+  if (!marca) return;
   try {
     llenarLista($("modelo"), await api("modelos", { marca }), "Selecciona un modelo");
   } catch (err) { console.error(err); }
-  pintarExplorador();
 }
 
 async function cargarAnios(marca, modelo) {
   llenarLista($("anio"), [], "Selecciona un año");
-  if (!marca || !modelo) { pintarExplorador(); return; }
-  pintarExplorador(true);
+  if (!marca || !modelo) return;
   try {
     llenarLista($("anio"), await api("anios", { marca, modelo }), "Selecciona un año");
   } catch (err) { console.error(err); }
-  pintarExplorador();
 }
 
 $("marca").addEventListener("change", (e) => cargarModelos(e.target.value));
 $("modelo").addEventListener("change", (e) => cargarAnios($("marca").value, e.target.value));
-$("anio").addEventListener("change", () => pintarExplorador());
-
-/* ---------- T2: validación de campos obligatorios ---------- */
-function validar() {
-  const reglas = [
-    ["marca", "Selecciona una marca."],
-    ["modelo", "Selecciona un modelo."],
-    ["anio", "Selecciona un año."],
-    ["repuesto", "Escribe el nombre del repuesto."]
-  ];
-  let valido = true;
-  for (const [id, mensaje] of reglas) {
-    const vacio = !$(id).value.trim();
-    $("campo-" + id).classList.toggle("invalido", vacio);
-    $("err-" + id).textContent = vacio ? mensaje : "";
-    if (vacio) valido = false;
-  }
-  return valido;
-}
 
 /* ---------- T3: resultado de búsqueda ---------- */
-function mostrarEsqueleto() {
+const ESQUELETOS_RESULTADOS = 3;
+
+/* ---------- Filtros por categoría ----------
+   Los valores coinciden con las categorías válidas del backend (motor, electrico, …). */
+const CATEGORIAS = [
+  { valor: "motor", etiqueta: "Motor" },
+  { valor: "electrico", etiqueta: "Eléctrico" },
+  { valor: "frenos", etiqueta: "Frenos" },
+  { valor: "transmision", etiqueta: "Transmisión" },
+  { valor: "suspension", etiqueta: "Suspensión" },
+  { valor: "aire_acondicionado", etiqueta: "Aire acondicionado" },
+  { valor: "accesorios", etiqueta: "Accesorios" }
+];
+let categoriaActiva = "";
+
+function pintarCategorias() {
+  const boton = (valor, etiqueta) => {
+    const activa = categoriaActiva === valor;
+    return `<button type="button" class="cat-boton${activa ? " activa" : ""}" data-cat="${valor}" aria-pressed="${activa}">${etiqueta}</button>`;
+  };
+  $("categorias").innerHTML =
+    boton("", "Todas") + CATEGORIAS.map((c) => boton(c.valor, c.etiqueta)).join("");
+}
+
+$("categorias").addEventListener("click", (e) => {
+  const btn = e.target.closest(".cat-boton");
+  if (!btn) return;
+  if (categoriaActiva === btn.dataset.cat) return; // ya está activa, no relanza
+  categoriaActiva = btn.dataset.cat;
+  pintarCategorias();
+  buscarRepuestos();
+});
+
+function mostrarEsqueleto(texto) {
   const fila = `
     <article class="repuesto" aria-hidden="true">
+      <div class="repuesto-foto"></div>
       <div class="repuesto-cab">
         <span class="esqueleto esq-titulo"></span>
         <span class="esqueleto esq-precio"></span>
@@ -178,11 +131,16 @@ function mostrarEsqueleto() {
         <span class="esqueleto esq-linea"></span>
       </div>
     </article>`;
-  $("resultados").innerHTML = `<p class="resumen">Buscando repuestos…</p>` + fila.repeat(ESQUELETOS_RESULTADOS);
+  $("resultados").innerHTML = `<p class="resumen">${escapar(texto)}</p>` + fila.repeat(ESQUELETOS_RESULTADOS);
 }
 
-function mostrarResultados(repuestos) {
-  const total = repuestos.length;
+function textoResumen(mostrados, total, hayFiltros) {
+  if (!hayFiltros) return "Catálogo de repuestos";
+  if (total > mostrados) return `Mostrando ${mostrados} de ${total} repuestos, los más relevantes primero`;
+  return `${total} ${total === 1 ? "repuesto encontrado" : "repuestos encontrados"}`;
+}
+
+function mostrarResultados(repuestos, total, hayFiltros) {
   const filasRepuestos = repuestos.map((r) => {
     // Primero las sucursales con más stock: el mecánico ve de inmediato dónde está la pieza
     const sucursales = [...r.sucursales].sort((a, b) => b.stock - a.stock);
@@ -198,25 +156,33 @@ function mostrarResultados(repuestos) {
         </td>
         <td class="num ${s.stock > 0 ? "stock-ok" : "stock-cero"}">${escapar(s.stock)}</td>
       </tr>`).join("");
-    const tabla = sucursales.length
-      ? `<table>
-          <thead><tr><th>Sucursal</th><th class="num">Stock</th></tr></thead>
-          <tbody>${filas}</tbody>
-        </table>`
+    // Compacto por defecto: una sola línea de resumen; la tabla se despliega al hacer clic
+    const detalle = sucursales.length
+      ? `<details class="sucursales">
+          <summary>
+            <span>Stock por sucursal (${conStock}/${sucursales.length} con stock)</span>
+            <span class="sucursales-flecha" aria-hidden="true"></span>
+          </summary>
+          <table>
+            <thead><tr><th>Sucursal</th><th class="num">Stock</th></tr></thead>
+            <tbody>${filas}</tbody>
+          </table>
+        </details>`
       : `<p class="sucursal-vacia">Este repuesto no tiene sucursales registradas.</p>`;
     return `
       <article class="repuesto">
+        <div class="repuesto-foto">${r.imagen ? `<img src="${escapar(r.imagen)}" alt="${escapar(r.nombre)}" loading="lazy">` : ""}</div>
         <div class="repuesto-cab">
           <h2>${escapar(r.nombre)}</h2>
           ${r.descripcion ? `<p class="repuesto-desc">${escapar(r.descripcion)}</p>` : ""}
           <span class="precio">${formatoPrecio.format(r.precio)}</span>
           <span class="disponibilidad ${conStock > 0 ? "stock-ok" : "stock-cero"}">${disponibilidad}</span>
         </div>
-        <div class="repuesto-detalle">${tabla}</div>
+        <div class="repuesto-detalle">${detalle}</div>
       </article>`;
   }).join("");
   $("resultados").innerHTML =
-    `<p class="resumen">${total} ${total === 1 ? "repuesto encontrado" : "repuestos encontrados"}</p>` + filasRepuestos;
+    `<p class="resumen">${textoResumen(repuestos.length, total, hayFiltros)}</p>` + filasRepuestos;
 }
 
 function limpiarPantalla() {
@@ -246,41 +212,69 @@ function mostrarErrorInventario(err) {
   mostrarAviso("error", "No se pudo consultar el stock, intenta de nuevo más tarde");
 }
 
-/* ---------- T2: flujo del botón "Buscar" ---------- */
-$("form-busqueda").addEventListener("submit", async (e) => {
-  e.preventDefault();
+/* ---------- T2: flujo de búsqueda ----------
+   Ningún filtro es obligatorio: se envía solo lo que la persona llenó. Sin filtros el
+   backend devuelve el catálogo más relevante, y así se muestra al abrir la página. */
+function leerFiltros() {
+  const filtros = {
+    marca: $("marca").value,
+    modelo: $("modelo").value,
+    anio: $("anio").value,
+    repuesto: $("repuesto").value.trim(),
+    categoria: categoriaActiva
+  };
+  return Object.fromEntries(Object.entries(filtros).filter(([, valor]) => valor));
+}
+
+// El número de petición vive en el DOM: si llega tarde una respuesta vieja, se descarta
+const esPeticionVieja = (numero) => Number($("resultados").dataset.peticion) !== numero;
+
+async function buscarRepuestos() {
   limpiarPantalla();
-  if (!validar()) return;
+  const filtros = leerFiltros();
+  const hayFiltros = Object.keys(filtros).length > 0;
+  const numero = Number($("resultados").dataset.peticion || 0) + 1;
+  $("resultados").dataset.peticion = String(numero);
 
   const boton = $("btn-buscar");
   boton.disabled = true;
   $("estado").textContent = "Buscando…";
-  mostrarEsqueleto();
+  mostrarEsqueleto(hayFiltros ? "Buscando repuestos…" : "Cargando el catálogo…");
 
   try {
-    const { repuestos } = await api("repuestos", {
-      marca: $("marca").value,
-      modelo: $("modelo").value,
-      anio: $("anio").value,
-      repuesto: $("repuesto").value.trim()
-    });
+    const { total, repuestos } = await api("repuestos", filtros);
+    if (esPeticionVieja(numero)) return;
     $("resultados").innerHTML = ""; // quita el esqueleto de carga
 
-    if (repuestos.length === 0) { mostrarNoEncontrado(); return; }
+    if (repuestos.length === 0) {
+      if (hayFiltros) mostrarNoEncontrado();
+      else mostrarAviso("vacio", "Aún no hay repuestos en el catálogo");
+      return;
+    }
 
-    mostrarResultados(repuestos); // T3
+    mostrarResultados(repuestos, total, hayFiltros); // T3
 
     const hayStock = repuestos.some((r) => r.sucursales.some((s) => s.stock > 0));
-    if (!hayStock) mostrarSinStock(repuestos);
+    if (hayFiltros && !hayStock) mostrarSinStock(repuestos);
   } catch (err) {
+    if (esPeticionVieja(numero)) return;
     console.error(err);
     $("resultados").innerHTML = "";
     mostrarErrorInventario(err); // el backend responde 503 si la BD no responde
   } finally {
-    boton.disabled = false;
-    $("estado").textContent = "";
+    if (!esPeticionVieja(numero)) {
+      boton.disabled = false;
+      $("estado").textContent = "";
+    }
   }
+}
+
+$("form-busqueda").addEventListener("submit", (e) => {
+  e.preventDefault();
+  buscarRepuestos();
 });
 
 activarIman($("btn-buscar"));
+pintarCategorias();
 cargarMarcas();
+buscarRepuestos();

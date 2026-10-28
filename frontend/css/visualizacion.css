@@ -1,0 +1,57 @@
+/* =========================================
+   VISUALIZACIÓN: imagen, marca y mensajes
+   Todas las clases llevan prefijo "vz-" para no chocar con styles.css.
+   Usa las variables de styles.css, con valores de respaldo por si faltan.
+========================================= */
+
+/* Cabecera de la tarjeta: [imagen] [nombre + marca] .......... [precio] */
+.repuesto-cab.vz-cab { align-items: center; }
+
+.vz-media {
+  flex: 0 0 72px;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: #f1f5f9;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: var(--radius-sm, 6px);
+}
+.vz-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background-color: #fff;
+}
+
+/* Producto sin imagen */
+.vz-sin-imagen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--text-muted, #6b7280);
+  font-size: 0.65rem;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.vz-info { flex: 1 1 160px; min-width: 0; }
+.vz-marca { margin-top: 2px; color: var(--text-muted, #6b7280); font-size: 0.9rem; }
+.vz-marca-etq { font-weight: 600; }
+
+/* Mensajes: "No se encontraron resultados" y "Escribe un término" */
+.vz-mensaje {
+  background-color: #fff;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-left: 4px solid var(--text-muted, #6b7280);
+  border-radius: var(--radius-md, 10px);
+  padding: 16px 20px;
+  color: var(--text-main, #212529);
+}
+.vz-mensaje + .vz-mensaje { margin-top: 12px; }
+.vz-mensaje strong { display: block; font-size: 1.05rem; }
+.vz-mensaje p { margin-top: 4px; color: var(--text-muted, #6b7280); font-size: 0.95rem; }
+.vz-mensaje.vz-termino { border-left-color: var(--primary-red, #d32f2f); }
