@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Consulta los repuestos del catálogo en tarjetas con imagen, nombre, marca y precio.">
+<title>Productos del catálogo</title>
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/productos.css">
+</head>
+<body>
+<header class="encabezado">
+  <!-- Mismo arte decorativo del buscador (disco rojo y engranaje), sin contenido para lectores de pantalla -->
+  <div class="encabezado-arte" aria-hidden="true">
+    <svg class="engranaje" viewBox="-100 -100 200 200" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"><polygon points="77.3,-10.5 95.8,-6.9 95.8,6.9 77.3,10.5 74.2,24.1 89.3,35.3 83.3,47.8 65.1,43.0 56.4,53.9 65.1,70.6 54.3,79.2 40.0,67.0 27.4,73.0 28.0,91.8 14.6,94.9 7.0,77.7 -7.0,77.7 -14.6,94.9 -28.0,91.8 -27.4,73.0 -40.0,67.0 -54.3,79.2 -65.1,70.6 -56.4,53.9 -65.1,43.0 -83.3,47.8 -89.3,35.3 -74.2,24.1 -77.3,10.5 -95.8,6.9 -95.8,-6.9 -77.3,-10.5 -74.2,-24.1 -89.3,-35.3 -83.3,-47.8 -65.1,-43.0 -56.4,-53.9 -65.1,-70.6 -54.3,-79.2 -40.0,-67.0 -27.4,-73.0 -28.0,-91.8 -14.6,-94.9 -7.0,-77.7 7.0,-77.7 14.6,-94.9 28.0,-91.8 27.4,-73.0 40.0,-67.0 54.3,-79.2 65.1,-70.6 56.4,-53.9 65.1,-43.0 83.3,-47.8 89.3,-35.3 74.2,-24.1"/><circle r="62"/><circle r="24"/><line x1="30.0" y1="0.0" x2="56.0" y2="0.0"/><line x1="15.0" y1="26.0" x2="28.0" y2="48.5"/><line x1="-15.0" y1="26.0" x2="-28.0" y2="48.5"/><line x1="-30.0" y1="0.0" x2="-56.0" y2="0.0"/><line x1="-15.0" y1="-26.0" x2="-28.0" y2="-48.5"/><line x1="15.0" y1="-26.0" x2="28.0" y2="-48.5"/></svg>
+  </div>
+  <div class="encabezado-interno">
+    <h1><span class="titulo-fuerte">Productos</span> <span class="titulo-acento">del catálogo</span></h1>
+    <p class="sub">Compara los repuestos por imagen, marca y precio, y abre el que necesites para ver su detalle.</p>
+    <a class="prod-volver" href="index.html">Ir al buscador</a>
+  </div>
+</header>
+
+<main>
+
+  <!-- ===== HU-04: Vista de productos (tarjetas) y paginación (CA3) ===== -->
+  <section id="prod-listado" class="prod-listado" aria-label="Listado de productos" tabindex="-1">
+    <p class="resumen" id="prod-resumen" role="status" aria-live="polite">Cargando productos…</p>
+    <ul class="prod-rejilla" id="prod-rejilla" role="list" aria-busy="true"></ul>
+    <nav class="prod-paginacion" id="prod-paginacion" aria-label="Paginación de productos" hidden></nav>
+    <div id="prod-mensajes" aria-live="polite"></div>
+    <noscript><p class="aviso-texto">Activa JavaScript para ver los productos.</p></noscript>
+  </section>
+
+</main>
+
+<script src="js/productos.js" defer></script>
+</body>
+</html>
