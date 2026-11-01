@@ -59,6 +59,18 @@ test("buscar sin criterios pide un término sin consultar ni borrar el catálogo
   assert.equal(elemento("repuesto").atributos["aria-invalid"], "true");
 });
 
+test("cada tarjeta enlaza al identificador de su propio repuesto", async () => {
+  const { contexto, elemento } = await prepararCatalogo();
+  contexto.fetch = async () => respuesta({ total: 2, repuestos: [
+    { id: 42, nombre: "Bujía", precio: 5, sucursales: [] },
+    { id: 73, nombre: "Filtro", precio: 12, sucursales: [] }
+  ] });
+  await contexto.buscarRepuestos();
+  const html = elemento("resultados").innerHTML;
+  assert.match(html, /href="pages\/detalle\.html\?id=42" aria-label="Ver detalle de Bujía"/);
+  assert.match(html, /href="pages\/detalle\.html\?id=73" aria-label="Ver detalle de Filtro"/);
+});
+
 test("una respuesta antigua de modelos no reemplaza la marca actual", async () => {
   const { contexto, elemento } = await prepararCatalogo();
   const antigua = diferida();

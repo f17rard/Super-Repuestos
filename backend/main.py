@@ -8,6 +8,7 @@ import logging
 from pathlib import Path
 
 from fastapi import FastAPI, Query, Request
+from fastapi import Path as ParametroRuta
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -87,6 +88,18 @@ def buscar_repuestos(
 ) -> dict:
     try:
         return catalogo.buscar_repuestos(marca, modelo, anio, repuesto, categoria, limite)
+    except ErrorInventario:
+        raise
+    except Exception as exc:
+        raise error_bd(exc)
+
+
+@app.get("/api/repuestos/{repuesto_id}")
+def obtener_detalle(
+    repuesto_id: int = ParametroRuta(..., ge=1, le=2147483647),
+) -> dict:
+    try:
+        return catalogo.consultar_detalle(repuesto_id)
     except ErrorInventario:
         raise
     except Exception as exc:

@@ -198,6 +198,7 @@ function mostrarResultados(repuestos, total, hayFiltros) {
           <h2>${escapar(r.nombre)}</h2>
           ${r.descripcion ? `<p class="repuesto-desc">${escapar(r.descripcion)}</p>` : ""}
           <span class="precio">${formatoPrecio.format(r.precio)}</span>
+          <a class="ver-detalle" href="pages/detalle.html?id=${encodeURIComponent(String(r.id))}" aria-label="Ver detalle de ${escapar(r.nombre)}">Ver detalle</a>
           <span class="disponibilidad ${conStock > 0 ? "stock-ok" : "stock-cero"}">${disponibilidad}</span>
         </div>
         <div class="repuesto-detalle">${detalle}</div>
