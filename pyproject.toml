@@ -12,3 +12,9 @@ dependencies = [
 
 [tool.vercel]
 entrypoint = "backend.main:app"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

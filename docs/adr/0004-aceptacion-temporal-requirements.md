@@ -136,6 +136,8 @@ La refactorización se hará cuando se cumpla **cualquiera** de estas condicione
 
 ## 7. Estado y seguimiento
 
+Actualización de mantenimiento del 1 de noviembre de 2026: ya existe `requirements-dev.txt` con las herramientas de pruebas y lint, y el CI lo instala junto con `requirements.txt`. Las observaciones anteriores describen el contexto original del ADR. Se conserva la organización actual de dependencias; el archivo raíz delega al backend y no es un archivo muerto.
+
 | Elemento | Detalle |
 |---|---|
 | **Estado actual** | Aceptada (temporal) |

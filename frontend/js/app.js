@@ -4,8 +4,6 @@
    ===================================================================== */
 const $ = (id) => document.getElementById(id);
 const MONEDA = { locale: "es-SV", codigo: "USD" };
-const SUPABASE_STORAGE_URL =
-  "https://wrpkjszpuwzobpsvxfhk.supabase.co/storage/v1/object/public/repuestos_imagenes";
 const formatoPrecio = new Intl.NumberFormat(MONEDA.locale, { style: "currency", currency: MONEDA.codigo });
 const escapar = (s) => String(s).replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -61,26 +59,47 @@ async function cargarMarcas() {
     llenarLista($("marca"), await api("marcas"), "Selecciona una marca");
   } catch (err) {
     console.error(err);
-    $("estado").textContent = "No se pudieron cargar las marcas.";
+    $("err-marca").textContent = "No se pudieron cargar las marcas. Recarga la página para reintentar.";
   }
   pintarCinta();
 }
 
 async function cargarModelos(marca) {
+  const numero = Number($("modelo").dataset.peticion || 0) + 1;
+  $("modelo").dataset.peticion = String(numero);
+  // Invalida también cualquier carga de años del vehículo anterior.
+  $("anio").dataset.peticion = String(Number($("anio").dataset.peticion || 0) + 1);
+  $("err-modelo").textContent = "";
+  $("err-anio").textContent = "";
   llenarLista($("modelo"), [], "Selecciona un modelo");
   llenarLista($("anio"), [], "Selecciona un año");
   if (!marca) return;
   try {
-    llenarLista($("modelo"), await api("modelos", { marca }), "Selecciona un modelo");
-  } catch (err) { console.error(err); }
+    const modelos = await api("modelos", { marca });
+    if (Number($("modelo").dataset.peticion) !== numero) return;
+    llenarLista($("modelo"), modelos, "Selecciona un modelo");
+  } catch (err) {
+    if (Number($("modelo").dataset.peticion) !== numero) return;
+    console.error(err);
+    $("err-modelo").textContent = "No se pudieron cargar los modelos. Vuelve a seleccionar la marca.";
+  }
 }
 
 async function cargarAnios(marca, modelo) {
+  const numero = Number($("anio").dataset.peticion || 0) + 1;
+  $("anio").dataset.peticion = String(numero);
+  $("err-anio").textContent = "";
   llenarLista($("anio"), [], "Selecciona un año");
   if (!marca || !modelo) return;
   try {
-    llenarLista($("anio"), await api("anios", { marca, modelo }), "Selecciona un año");
-  } catch (err) { console.error(err); }
+    const anios = await api("anios", { marca, modelo });
+    if (Number($("anio").dataset.peticion) !== numero) return;
+    llenarLista($("anio"), anios, "Selecciona un año");
+  } catch (err) {
+    if (Number($("anio").dataset.peticion) !== numero) return;
+    console.error(err);
+    $("err-anio").textContent = "No se pudieron cargar los años. Vuelve a seleccionar el modelo.";
+  }
 }
 
 $("marca").addEventListener("change", (e) => cargarModelos(e.target.value));
@@ -100,11 +119,10 @@ const CATEGORIAS = [
   { valor: "aire_acondicionado", etiqueta: "Aire acondicionado" },
   { valor: "accesorios", etiqueta: "Accesorios" }
 ];
-let categoriaActiva = "";
 
 function pintarCategorias() {
   const boton = (valor, etiqueta) => {
-    const activa = categoriaActiva === valor;
+    const activa = ($("categorias").dataset.activa || "") === valor;
     return `<button type="button" class="cat-boton${activa ? " activa" : ""}" data-cat="${valor}" aria-pressed="${activa}">${etiqueta}</button>`;
   };
   $("categorias").innerHTML =
@@ -114,8 +132,8 @@ function pintarCategorias() {
 $("categorias").addEventListener("click", (e) => {
   const btn = e.target.closest(".cat-boton");
   if (!btn) return;
-  if (categoriaActiva === btn.dataset.cat) return; // ya está activa, no relanza
-  categoriaActiva = btn.dataset.cat;
+  if (($("categorias").dataset.activa || "") === btn.dataset.cat) return;
+  $("categorias").dataset.activa = btn.dataset.cat;
   pintarCategorias();
   buscarRepuestos();
 });
@@ -174,8 +192,8 @@ function mostrarResultados(repuestos, total, hayFiltros) {
     return `
       <article class="repuesto">
         <div class="repuesto-foto">${r.imagen
-          ? `<img src="${escapar(`${SUPABASE_STORAGE_URL}/${r.imagen.split("/").map(encodeURIComponent).join("/")}`)}" alt="${escapar(r.nombre)}" loading="lazy">`
-          : ""}</div>
+          ? `<img src="${escapar(r.imagen)}" alt="${escapar(r.nombre)}" loading="lazy">`
+          : '<span class="sin-imagen">Sin imagen</span>'}</div>
         <div class="repuesto-cab">
           <h2>${escapar(r.nombre)}</h2>
           ${r.descripcion ? `<p class="repuesto-desc">${escapar(r.descripcion)}</p>` : ""}
@@ -187,6 +205,16 @@ function mostrarResultados(repuestos, total, hayFiltros) {
   }).join("");
   $("resultados").innerHTML =
     `<p class="resumen">${textoResumen(repuestos.length, total, hayFiltros)}</p>` + filasRepuestos;
+  $("resultados").querySelectorAll(".repuesto-foto img").forEach((imagen) => {
+    function mostrarSinImagen() {
+      const texto = document.createElement("span");
+      texto.className = "sin-imagen";
+      texto.textContent = "Sin imagen";
+      imagen.replaceWith(texto);
+    }
+    imagen.addEventListener("error", mostrarSinImagen, { once: true });
+    if (imagen.complete && imagen.naturalWidth === 0) mostrarSinImagen();
+  });
 }
 
 function limpiarPantalla() {
@@ -203,17 +231,24 @@ function mostrarAviso(tipo, titulo, texto = "") {
     </div>`;
 }
 
-/* ---------- Ganchos para las tareas de otros compañeros ----------
-   Cada función se llama en el momento correcto del flujo. Quien tenga la tarea
-   solo debe completar su función, sin tocar el resto del archivo.            */
-function mostrarSinStock(repuestos) {
+/* ---------- Estados del catálogo (CA2, CA3 y CA4) ---------- */
+function mostrarSinStock() {
   mostrarAviso("sin-stock", "Sin stock en ninguna sucursal", "Prueba con otro repuesto del mismo vehículo o consulta más tarde.");
 }
 function mostrarNoEncontrado() {
   mostrarAviso("vacio", "No se encontró el repuesto que busca", "Revisa la ortografía o escribe solo una palabra, por ejemplo «filtro».");
 }
-function mostrarErrorInventario(err) {
+function mostrarErrorInventario() {
   mostrarAviso("error", "No se pudo consultar el stock, intenta de nuevo más tarde");
+}
+
+function mostrarErrorBusqueda(err) {
+  const codigo = err.detalle?.detail?.codigo;
+  if (codigo === "CATEGORIA_INVALIDA" || codigo === "FILTROS_INVALIDOS" || err.status === 422) {
+    mostrarAviso("error", "Revisa los filtros de búsqueda e intenta de nuevo.");
+    return;
+  }
+  mostrarErrorInventario();
 }
 
 /* ---------- T2: flujo de búsqueda ----------
@@ -225,7 +260,7 @@ function leerFiltros() {
     modelo: $("modelo").value,
     anio: $("anio").value,
     repuesto: $("repuesto").value.trim(),
-    categoria: categoriaActiva
+    categoria: $("categorias").dataset.activa || ""
   };
   return Object.fromEntries(Object.entries(filtros).filter(([, valor]) => valor));
 }
@@ -251,7 +286,9 @@ async function buscarRepuestos() {
     $("resultados").innerHTML = ""; // quita el esqueleto de carga
 
     if (repuestos.length === 0) {
-      if (hayFiltros) mostrarNoEncontrado();
+      if (filtros.categoria) {
+        mostrarAviso("vacio", "Por el momento no hay repuestos disponibles en esta categoría", "Selecciona «Todas» para quitar el filtro de categoría.");
+      } else if (hayFiltros) mostrarNoEncontrado();
       else mostrarAviso("vacio", "Aún no hay repuestos en el catálogo");
       return;
     }
@@ -259,12 +296,12 @@ async function buscarRepuestos() {
     mostrarResultados(repuestos, total, hayFiltros); // T3
 
     const hayStock = repuestos.some((r) => r.sucursales.some((s) => s.stock > 0));
-    if (hayFiltros && !hayStock) mostrarSinStock(repuestos);
+    if (hayFiltros && !hayStock) mostrarSinStock();
   } catch (err) {
     if (esPeticionVieja(numero)) return;
     console.error(err);
     $("resultados").innerHTML = "";
-    mostrarErrorInventario(err); // el backend responde 503 si la BD no responde
+    mostrarErrorBusqueda(err);
   } finally {
     if (!esPeticionVieja(numero)) {
       boton.disabled = false;
@@ -275,7 +312,20 @@ async function buscarRepuestos() {
 
 $("form-busqueda").addEventListener("submit", (e) => {
   e.preventDefault();
+  if (Object.keys(leerFiltros()).length === 0) {
+    $("err-repuesto").textContent = "Escribe el nombre del repuesto o selecciona un filtro.";
+    $("repuesto").setAttribute("aria-invalid", "true");
+    $("repuesto").focus();
+    return;
+  }
+  $("err-repuesto").textContent = "";
+  $("repuesto").removeAttribute("aria-invalid");
   buscarRepuestos();
+});
+
+$("repuesto").addEventListener("input", () => {
+  $("err-repuesto").textContent = "";
+  $("repuesto").removeAttribute("aria-invalid");
 });
 
 activarIman($("btn-buscar"));

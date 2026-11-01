@@ -1,6 +1,6 @@
 Historia 07
 
-CONTEXTO: Se trabajan las categorías en frontend/js/app.js, el procesamiento y enlistado en backend/main.py, y la visualización en frontend/index.html, todos los demas archivos no se tocan, ya que involucran estilo, apis y tests.
+CONTEXTO HISTÓRICO DEL TALLER: Se trabajaron las categorías en frontend/js/app.js, el procesamiento y enlistado en backend/main.py, y la visualización en frontend/index.html. El alcance de aquella actividad se limitaba a esos archivos. Para mantenimiento posterior se consultan CONVENCIONES.md y las instrucciones actuales del proyecto.
 
 HISTORIA DE USUARIO: 07 Catálogo por categorías
 COMO: Mecánico

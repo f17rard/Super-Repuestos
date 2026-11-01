@@ -1,6 +1,6 @@
 # Convenciones de código — Super-Repuestos
 
-Este documento define cómo escribimos código en este repo. Se dedujo del código que ya existe (`backend/main.py`, `frontend/`, `controlDeErrores.py`, el workflow de CI) para que lo nuevo se vea igual que lo actual.
+Este documento define cómo escribimos código en este repo. Se dedujo del código que ya existe (`backend/main.py`, `frontend/`, `backend/control_de_errores.py`, el workflow de CI) para que lo nuevo se vea igual que lo actual.
 
 Cada regla lleva una etiqueta:
 
@@ -33,20 +33,23 @@ Cada regla lleva una etiqueta:
 ├── .github/workflows/         ← CI (DLCdeluxe_CI.yml)
 ├── backend/
 │   ├── main.py                ← API FastAPI + sirve el frontend
+│   ├── catalogo.py            ← reglas de búsqueda, disponibilidad y relevancia
+│   ├── repositorio.py         ← entorno, conexión y consultas a Supabase
+│   ├── control_de_errores.py   ← errores y validaciones usados por el catálogo
 │   ├── requirements.txt       ← dependencias del backend
 │   ├── .env                   ← NO se versiona
-│   └── .env.example           ← plantilla sin valores reales                            [Nueva]
+│   └── .env.example           ← plantilla sin valores reales
 ├── frontend/
 │   ├── index.html
-│   ├── css/styles.css
-│   └── js/app.js
-├── tests/                     ← pruebas con pytest                                      [Nueva]
-└── control_de_errores.py      ← excepciones y validaciones (hoy: controlDeErrores.py)   [Nueva]
+│   ├── pages/detalle.html     ← implementación futura, todavía sin API de detalle
+│   ├── css/                   ← styles.css y detalle.css
+│   └── js/                    ← app.js y detalle.js
+└── tests/                     ← pruebas con inventario simulado
 ```
 
 Reglas:
 
-- El frontend **nunca** habla con Supabase: solo llama a `/api/...`. **[Vigente]**
+- El frontend consulta datos mediante `/api/...`. Las imágenes se leen del almacenamiento público mediante direcciones construidas por el backend; nunca se envían claves al navegador. **[Vigente]**
 - Las dependencias del backend viven en `backend/requirements.txt`; el `requirements.txt` de la raíz solo las referencia. **[Vigente]**
 - Las herramientas de desarrollo (`ruff`, `pytest`, `pytest-cov`) van en `requirements-dev.txt`, y el CI debe instalarlas (`pip install -r requirements.txt -r requirements-dev.txt`). **[Nueva]**
 - Un archivo nuevo va en la carpeta de su capa (backend, frontend, tests). No se crean archivos sueltos en la raíz.
@@ -86,7 +89,7 @@ En identificadores (código, parámetros de URL, claves JSON) **no se usan tilde
 | Endpoint | `/api/<recurso-en-plural>` en minúscula | `/api/marcas`, `/api/repuestos` |
 | Parámetro de query / clave JSON | minúscula, `snake_case` | `marca`, `anio`, `precio_base` |
 
-**Mayúsculas y minúsculas importan.** Linux (CI, servidores) distingue `Main.py` de `main.py`. El nombre del archivo, los comandos (`uvicorn main:app`) y los comentarios que lo mencionen deben coincidir letra por letra. **[Nueva]**
+**Mayúsculas y minúsculas importan.** Linux (CI, servidores) distingue `Main.py` de `main.py`. El nombre del archivo, los comandos (`uvicorn backend.main:app`, desde la raíz) y los comentarios que lo mencionen deben coincidir letra por letra. **[Vigente]**
 
 ---
 
@@ -130,7 +133,7 @@ Separador de secciones (75 guiones):
 
 - **Type hints** en parámetros y retorno de endpoints y helpers: `-> list[str]`, `-> dict`. **[Vigente]**
 - Validar parámetros con `Query(..., min_length=1)`. **[Vigente]**
-- Los endpoints son delgados: validan, consultan, transforman y responden. La lógica reutilizable va en helpers (`traer_todo`, `escapar_like`). **[Vigente]**
+- Los endpoints de `main.py` validan la entrada HTTP, delegan en `catalogo.py` y responden. El catálogo aplica las reglas de negocio sin importar FastAPI ni el cliente de Supabase. `repositorio.py` contiene las consultas, la paginación (`traer_todo`), el escape de filtros (`escapar_like`) y la traducción de filas al formato del catálogo. **[Vigente]**
 - **Todo texto del usuario que entre a un filtro `like`/`ilike` pasa por `escapar_like()`.** **[Vigente]**
 - Las consultas a Supabase se paginan con `traer_todo()` para no toparse con el límite de 1000 filas. **[Vigente]**
 - Los nombres de tablas salen de constantes `T_*` (configurables por `.env`), nunca escritos a mano en la consulta. **[Vigente]**
@@ -141,19 +144,21 @@ Separador de secciones (75 guiones):
 ### 4.4 Manejo de errores
 
 - En el borde del endpoint se captura `Exception`, se registra con `log.exception(...)` y se responde con el error común `error_bd(exc)`. **[Vigente]**
-- La respuesta de error tiene siempre esta forma (código estable para el frontend + mensaje legible):
+- Las respuestas de validación e inventario usan el contenedor `detail` de la API (código estable para el frontend y mensaje legible):
 
 ```json
 {
-  "codigo": "BD_NO_DISPONIBLE",
-  "mensaje": "No se pudo consultar el stock, intenta de nuevo más tarde"
+  "detail": {
+    "codigo": "BD_NO_DISPONIBLE",
+    "mensaje": "No se pudo consultar el stock, intenta de nuevo más tarde"
+  }
 }
 ```
 
 - `codigo` en `MAYUSCULAS_CON_GUION_BAJO`; no cambia una vez publicado. El frontend decide con `codigo`, no con el texto del mensaje. **[Nueva]**
 - Códigos HTTP: `422` validación, `503` base de datos o inventario caído, `404` solo si se pide un recurso por id que no existe. Una búsqueda sin coincidencias **no es error**: responde `200` con lista vacía. **[Vigente]**
 - Nunca se devuelve al cliente el texto crudo de la excepción ni detalles internos. **[Vigente]**
-- Las excepciones propias heredan de `ErrorInventario`, se llaman `Error<Causa>` y llevan el mensaje para el usuario. Las validaciones viven en funciones `validar_<cosa>` (`validar_busqueda`, `validar_cantidad`). **[Vigente]**
+- Las excepciones propias heredan de `ErrorInventario`, se llaman `Error<Causa>` y llevan un código estable y un mensaje para el usuario. Las validaciones actuales son `validar_categoria` y `validar_stock`, en `backend/control_de_errores.py`. El stock cero es válido. No se agregan validaciones de funciones aún no implementadas. **[Vigente]**
 
 ---
 
@@ -162,7 +167,7 @@ Separador de secciones (75 guiones):
 - Prefijo `/api`. Recursos en plural y en minúscula. Solo `GET` por ahora. **[Vigente]**
 - Los filtros viajan por query string; los nombres de los filtros son iguales en frontend y backend (`marca`, `modelo`, `anio`, `repuesto`). **[Vigente]**
 - Las listas simples (`/api/marcas`) devuelven un arreglo JSON de valores. Las respuestas con más contexto devuelven un objeto: `{ "total": n, "repuestos": [...] }`. **[Vigente]**
-- Los montos viajan como número (`precio`), nunca como texto con símbolo; el formato de moneda lo pone el frontend. **[Vigente]**
+- Los montos viajan como número (`precio`), nunca como texto con símbolo; el formato de moneda lo pone el frontend. `imagen` contiene una dirección pública completa o `null`. **[Vigente]**
 - Si cambia el contrato (campos, nombres, códigos), se avisa en el PR y se actualizan el frontend y las pruebas en el mismo PR. **[Nueva]**
 
 ---
@@ -175,7 +180,7 @@ Separador de secciones (75 guiones):
 - Sangría de **2 espacios**, comillas dobles `"`, **punto y coma obligatorio**. **[Vigente]**
 - `const` por defecto, `let` si hay reasignación. **Nunca `var`.** Comparar con `===`. **[Vigente]**
 - Template literals para armar texto y HTML. **[Vigente]**
-- Se valida con `node --check frontend/js/app.js` (lo hace el CI). **[Vigente]**
+- Se valida la sintaxis de `app.js` y `detalle.js` con `node --check`. Las regresiones del catálogo se ejecutan con `node --test tests/frontend.test.cjs`. **[Vigente]**
 
 ### 6.2 Estructura de `app.js`
 
@@ -250,13 +255,13 @@ Separador de secciones (75 guiones):
 ```python
 # Correcto
 url = os.getenv("SUPABASE_URL")
-key = os.getenv("SUPABASE_KEY")
+key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 # Incorrecto: el valor real quedó escrito como si fuera el nombre
 url = os.getenv("https://xxxx.supabase.co")
 ```
 
-- Los valores reales van en `backend/.env` (ignorado por git). La plantilla `backend/.env.example` lista solo los nombres: `SUPABASE_URL`, `SUPABASE_KEY`, `TABLA_*`. **[Nueva]**
+- Los valores reales van en `backend/.env` (ignorado por git) o en el entorno del proyecto en Vercel. La plantilla `backend/.env.example` lista `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` y `TABLA_*`, sin credenciales reales. El bucket predeterminado es `repuestos_imagenes`. **[Vigente]**
 - Si una llave se subió al repo por error, se rota en Supabase (cambiar el archivo no basta: queda en el historial de git).
 - El CI usa credenciales ficticias y una BD simulada; las pruebas **nunca** tocan Supabase. **[Vigente]**
 - El CI revisa dependencias con `pip-audit` y falla si hay un `.env` versionado. **[Vigente]**
@@ -265,7 +270,7 @@ url = os.getenv("https://xxxx.supabase.co")
 
 ## 10. Pruebas
 
-- Herramienta: `pytest` con `pytest-cov`. Carpeta `tests/`. **[Vigente en CI; carpeta por crear]**
+- Herramienta: `pytest` con `pytest-cov`. Carpeta `tests/`. **[Vigente]**
 - Archivos `test_<modulo>.py`; funciones `test_<situacion>_<resultado_esperado>`:
 
 ```python

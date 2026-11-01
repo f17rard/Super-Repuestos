@@ -18,7 +18,7 @@ permissions:
 env:
   # Credenciales ficticias: las pruebas NO tocan Supabase (se usa una BD simulada).
   SUPABASE_URL: http://127.0.0.1:9
-  SUPABASE_KEY: ci-dummy-key
+  SUPABASE_SERVICE_ROLE_KEY: ci-dummy-key
 
 jobs:
   # A main solo se llega desde qa
@@ -54,15 +54,18 @@ jobs:
       - name: Lint y sintaxis
         run: |
           ruff check .
-          python -m compileall -q backend controlDeErrores.py tests
+          python -m compileall -q backend tests
           node --check frontend/js/app.js
+          node --check frontend/js/detalle.js
 
       - name: Pruebas con cobertura
-        run: pytest --cov --cov-report=term-missing
-
-      - name: "Humo: main.py vive en backend/, por eso --app-dir"
         run: |
-          uvicorn main:app --app-dir backend --port 8000 &
+          pytest --cov --cov-report=term-missing
+          node --test tests/frontend.test.cjs
+
+      - name: "Humo: API y catálogo desde la raíz del proyecto"
+        run: |
+          uvicorn backend.main:app --port 8000 &
           for i in $(seq 1 20); do
             curl -sf http://127.0.0.1:8000/openapi.json > openapi.json && break
             sleep 1
