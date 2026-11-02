@@ -23,6 +23,17 @@ T_REPUESTOS = os.getenv(
 )  # id, nombre, descripcion, precio_base, categoria, vehiculo_id
 T_INVENTARIO = os.getenv("TABLA_INVENTARIO", "inventario")  # id, repuesto_id, sucursal_id, stock
 T_SUCURSALES = os.getenv("TABLA_SUCURSALES", "sucursales")  # id, nombre, direccion
+T_CATEGORIAS = "categorias"
+
+NOMBRES_CATEGORIAS = {
+    "motor": "Motor",
+    "electrico": "Eléctrico",
+    "frenos": "Frenos",
+    "transmision": "Transmisión",
+    "suspension": "Suspensión",
+    "aire_acondicionado": "Aire acondicionado",
+    "accesorios": "Accesorios",
+}
 
 PAGINA = 1000  # filas por petición a Supabase (su límite por defecto)
 
@@ -115,6 +126,22 @@ def obtener_anios(marca: str, modelo: str) -> list[int]:
     )
     return sorted({f["anio"] for f in filas}, reverse=True)
 
+def obtener_id_categoria(categoria: str) -> int | None:
+    nombre = NOMBRES_CATEGORIAS[categoria]
+
+    respuesta = (
+        get_db()
+        .table(T_CATEGORIAS)
+        .select("id")
+        .eq("nombre", nombre)
+        .limit(1)
+        .execute()
+    )
+
+    if not respuesta.data:
+        return None
+
+    return respuesta.data[0]["id"]
 
 def obtener_repuestos(
     marca: str | None,
@@ -126,6 +153,10 @@ def obtener_repuestos(
 ) -> list[dict]:
     con_vehiculo = bool(marca or modelo or anio is not None)
     seleccion = armar_seleccion(con_vehiculo)
+    id_categoria = (
+    obtener_id_categoria(categoria)
+    if categoria else None
+)
 
     def construir_consulta():
         # order("id") da un orden estable al paginar
@@ -139,8 +170,11 @@ def obtener_repuestos(
             consulta = consulta.eq(f"{T_VEHICULOS}.{T_MODELOS}.nombre", modelo)
         if marca:
             consulta = consulta.eq(f"{T_VEHICULOS}.{T_MODELOS}.{T_MARCAS}.nombre", marca)
-        if categoria:
-            consulta = consulta.eq("categoria", categoria)
+if categoria:
+    consulta = consulta.eq(
+        "categoria_id",
+        id_categoria if id_categoria is not None else -1
+    )
         return consulta
 
     filas = traer_todo(construir_consulta, maximo=maximo)
