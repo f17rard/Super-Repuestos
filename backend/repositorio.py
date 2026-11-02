@@ -158,23 +158,6 @@ def obtener_anios(marca: str, modelo: str) -> list[int]:
     return sorted({f["anio"] for f in filas}, reverse=True)
 
 def obtener_id_categoria(categoria: str) -> int | None:
-    nombre = NOMBRES_CATEGORIAS[categoria]
-
-    respuesta = (
-        get_db()
-        .table(T_CATEGORIAS)
-        .select("id")
-        .eq("nombre", nombre)
-        .limit(1)
-        .execute()
-    )
-
-    if not respuesta.data:
-        return None
-
-    return respuesta.data[0]["id"]
-
-def obtener_id_categoria(categoria: str) -> int | None:
     filas = (
         get_db()
         .table(T_CATEGORIAS)
