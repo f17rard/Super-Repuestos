@@ -58,6 +58,34 @@ def listar_anios(marca: str, modelo: str) -> list[int]:
     return repositorio.obtener_anios(marca, modelo)
 
 
+def coincide_busqueda(pieza: dict, palabras: list[str]) -> bool:
+    """Busca nombre, descripción o ID interno sin inventar un SKU."""
+    if not palabras:
+        return True
+    codigo = str(pieza.get("codigo") or pieza.get("id") or "").casefold()
+    if len(palabras) == 1 and palabras[0] == codigo:
+        return True
+    texto = f"{pieza.get('nombre') or ''} {pieza.get('descripcion') or ''}".casefold()
+    return all(palabra in texto for palabra in palabras)
+
+
+def normalizar_stock(repuestos: list[dict]) -> list[dict]:
+    for pieza in repuestos:
+        for sucursal in pieza["sucursales"]:
+            sucursal["stock"] = stock_inventario(sucursal)
+    return repuestos
+
+
+def preparar_resultado(
+    repuestos: list[dict], palabras: list[str], categoria: str | None, limite: int
+) -> dict:
+    repuestos = normalizar_stock(repuestos)
+    if categoria:
+        repuestos = [r for r in repuestos if any(s["stock"] > 0 for s in r["sucursales"])]
+    repuestos = ordenar_por_relevancia(repuestos, palabras)
+    return {"total": len(repuestos), "repuestos": repuestos[:limite]}
+
+
 def buscar_repuestos(
     marca: str | None = None,
     modelo: str | None = None,
@@ -73,12 +101,16 @@ def buscar_repuestos(
     palabras = (repuesto or "").lower().split()
     con_vehiculo = bool(marca or modelo or anio is not None)
     maximo = MAX_FILAS_RELEVANCIA if (palabras or con_vehiculo or categoria) else limite
-    repuestos = repositorio.obtener_repuestos(marca, modelo, anio, palabras, categoria, maximo)
-    for pieza in repuestos:
-        for sucursal in pieza["sucursales"]:
-            sucursal["stock"] = stock_inventario(sucursal)
-    if categoria:
-        # RN2 de categorías: solo piezas disponibles; la búsqueda conserva los agotados.
-        repuestos = [r for r in repuestos if any(s["stock"] > 0 for s in r["sucursales"])]
-    repuestos = ordenar_por_relevancia(repuestos, palabras)
-    return {"total": len(repuestos), "repuestos": repuestos[:limite]}
+    repuestos = repositorio.obtener_repuestos(marca, modelo, anio, [], categoria, maximo)
+    repuestos = [pieza for pieza in repuestos if coincide_busqueda(pieza, palabras)]
+    return preparar_resultado(repuestos, palabras, categoria, limite)
+
+
+def obtener_detalle(repuesto_id: int) -> dict | None:
+    piezas = repositorio.obtener_repuestos(None, None, None, [], None, MAX_FILAS_RELEVANCIA)
+    pieza = next((p for p in piezas if p["id"] == repuesto_id), None)
+    if pieza is None:
+        return None
+    normalizar_stock([pieza])
+    imagenes = [{"url": pieza["imagen"]}] if pieza.get("imagen") else []
+    return {**pieza, "imagenes": imagenes}

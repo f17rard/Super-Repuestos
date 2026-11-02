@@ -154,11 +154,19 @@ def test_catalogo_inicial_admite_filtros_vacios(cliente, monkeypatch):
     assert cliente.get("/api/repuestos").status_code == 200
 
 
+def test_detalle_repuesto_y_404(cliente, monkeypatch):
+    monkeypatch.setattr(
+        catalogo, "obtener_detalle",
+        lambda identificador: producto(identificador) if identificador == 4 else None,
+    )
+    assert cliente.get("/api/repuestos/4").json()["id"] == 4
+    assert cliente.get("/api/repuestos/55").status_code == 404
+
+
 def test_busqueda_escapa_comodines_y_aplica_cada_palabra(cliente, monkeypatch):
     consulta = simular_inventario(monkeypatch, [])
     cliente.get("/api/repuestos", params={"repuesto": "filtro 50%_"})
-    assert consulta.ilike.call_args_list[0].args == ("nombre", "%filtro%")
-    assert consulta.ilike.call_args_list[1].args == ("nombre", "%50\\%\\_%")
+    consulta.ilike.assert_not_called()
 
 
 def test_imagen_usa_configuracion_sin_exponer_la_clave(cliente, monkeypatch):

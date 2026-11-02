@@ -43,3 +43,26 @@ def test_categoria_invalida_no_consulta_repositorio(monkeypatch):
     with pytest.raises(ErrorFiltroInvalido):
         catalogo.buscar_repuestos(categoria="inexistente")
     obtener.assert_not_called()
+
+
+def test_busqueda_usa_descripcion_e_id_interno(monkeypatch):
+    piezas = [
+        {"id": 8, "nombre": "Filtro", "descripcion": "Aceite sintético",
+         "sucursales": [{"stock": 2}]},
+        {"id": 15, "nombre": "Pastillas", "descripcion": "Cerámica silenciosa",
+         "sucursales": [{"stock": 2}]},
+    ]
+    obtener = Mock(return_value=piezas)
+    monkeypatch.setattr(catalogo.repositorio, "obtener_repuestos", obtener)
+    assert catalogo.buscar_repuestos(repuesto="silenciosa")["total"] == 1
+    assert catalogo.buscar_repuestos(repuesto="15")["repuestos"][0]["id"] == 15
+    assert obtener.call_args.args[3] == []
+
+
+def test_detalle_sin_imagen_devuelve_lista_vacia(monkeypatch):
+    pieza = {"id": 42, "nombre": "Pastillas", "imagen": None,
+             "sucursales": [{"stock": 0}]}
+    monkeypatch.setattr(catalogo.repositorio, "obtener_repuestos", Mock(return_value=[pieza]))
+    detalle = catalogo.obtener_detalle(42)
+    assert detalle["imagenes"] == []
+    assert detalle["sucursales"][0]["stock"] == 0
