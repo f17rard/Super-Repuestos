@@ -5,7 +5,7 @@
 const $ = (id) => document.getElementById(id);
 const MONEDA = { locale: "es-SV", codigo: "USD" };
 const formatoPrecio = new Intl.NumberFormat(MONEDA.locale, { style: "currency", currency: MONEDA.codigo });
-const escapar = (s) => String(s).replace(/[&<>"']/g, (c) =>
+const escapar = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 /* ---------- Llamada a la API ---------- */
@@ -160,6 +160,70 @@ function textoResumen(mostrados, total, hayFiltros) {
   return `${total} ${total === 1 ? "repuesto encontrado" : "repuestos encontrados"}`;
 }
 
+function sucursalesOrdenadas(repuesto) {
+  return [...(repuesto.sucursales || [])].sort((a, b) => b.stock - a.stock);
+}
+
+function filasSucursal(sucursales) {
+  return sucursales.map((s) => `<tr><td><span class="sucursal-nombre">${escapar(s.nombre)}</span>
+    ${s.direccion ? `<span class="sucursal-direccion">${escapar(s.direccion)}</span>` : ""}</td>
+    <td class="num ${s.stock > 0 ? "stock-ok" : "stock-cero"}">${escapar(s.stock)}</td></tr>`).join("");
+}
+
+function detalleSucursales(sucursales) {
+  if (!sucursales.length) return '<p class="sucursal-vacia">Este repuesto no tiene sucursales registradas.</p>';
+  const conStock = sucursales.filter((s) => s.stock > 0).length;
+  return `<details class="sucursales"><summary><span>Stock por sucursal (${conStock}/${sucursales.length} con stock)</span>
+    <span class="sucursales-flecha" aria-hidden="true"></span></summary>
+    <table><thead><tr><th>Sucursal</th><th class="num">Stock</th></tr></thead>
+    <tbody>${filasSucursal(sucursales)}</tbody></table></details>`;
+}
+
+function imagenRepuesto(repuesto) {
+  return repuesto.imagen
+    ? `<img src="${escapar(repuesto.imagen)}" alt="${escapar(repuesto.nombre)}" loading="lazy">`
+    : '<span class="sin-imagen">Sin imagen</span>';
+}
+
+function enlaceDetalle(repuesto) {
+  const id = String(repuesto.id ?? "");
+  if (!/^\d+$/.test(id) || Number(id) <= 0) return "";
+  return `<a class="boton enlace-detalle" href="/pages/detalle.html?id=${encodeURIComponent(id)}">Ver detalle</a>`;
+}
+
+function informacionRepuesto(repuesto, sucursales) {
+  const conStock = sucursales.filter((s) => s.stock > 0).length;
+  const disponibilidad = conStock
+    ? `En stock en ${conStock} de ${sucursales.length} ${sucursales.length === 1 ? "sucursal" : "sucursales"}`
+    : "Sin stock";
+  const fabricante = repuesto.marca_fabricante || repuesto.fabricante || "Fabricante no registrado";
+  const codigo = repuesto.codigo ? `Código: ${repuesto.codigo}` : `ID interno: ${repuesto.id ?? "No disponible"}`;
+  return `<h2>${escapar(repuesto.nombre)}</h2><p class="repuesto-marca">${escapar(fabricante)}</p>
+    <p class="repuesto-codigo">${escapar(codigo)}</p>
+    ${repuesto.descripcion ? `<p class="repuesto-desc">${escapar(repuesto.descripcion)}</p>` : ""}
+    <span class="precio">${formatoPrecio.format(Number(repuesto.precio) || 0)}</span>
+    <span class="disponibilidad ${conStock ? "stock-ok" : "stock-cero"}">${disponibilidad}</span>
+    ${enlaceDetalle(repuesto)}`;
+}
+
+function tarjetaRepuesto(repuesto) {
+  const sucursales = sucursalesOrdenadas(repuesto);
+  return `<article class="repuesto"><div class="repuesto-foto">${imagenRepuesto(repuesto)}</div>
+    <div class="repuesto-cab">${informacionRepuesto(repuesto, sucursales)}</div>
+    <div class="repuesto-detalle">${detalleSucursales(sucursales)}</div></article>`;
+}
+
+function vigilarImagen(imagen) {
+  function mostrarSinImagen() {
+    const texto = document.createElement("span");
+    texto.className = "sin-imagen";
+    texto.textContent = "Sin imagen";
+    imagen.replaceWith(texto);
+  }
+  imagen.addEventListener("error", mostrarSinImagen, { once: true });
+  if (imagen.complete && imagen.naturalWidth === 0) mostrarSinImagen();
+}
+
 function mostrarResultados(repuestos, total, hayFiltros) {
   const filasRepuestos = repuestos.map((r) => {
     // Primero las sucursales con más stock: el mecánico ve de inmediato dónde está la pieza
@@ -196,8 +260,11 @@ function mostrarResultados(repuestos, total, hayFiltros) {
           : '<span class="sin-imagen">Sin imagen</span>'}</div>
         <div class="repuesto-cab">
           <h2>${escapar(r.nombre)}</h2>
+          ${r.marca_fabricante || r.fabricante ? `<p class="repuesto-marca">${escapar(r.marca_fabricante || r.fabricante)}</p>` : ""}
+          <p class="repuesto-codigo">${escapar(r.codigo ? `Código: ${r.codigo}` : `ID interno: ${r.id}`)}</p>
           ${r.descripcion ? `<p class="repuesto-desc">${escapar(r.descripcion)}</p>` : ""}
           <span class="precio">${formatoPrecio.format(r.precio)}</span>
+          <a class="ver-detalle" href="pages/detalle.html?id=${encodeURIComponent(String(r.id))}" aria-label="Ver detalle de ${escapar(r.nombre)}">Ver detalle</a>
           <span class="disponibilidad ${conStock > 0 ? "stock-ok" : "stock-cero"}">${disponibilidad}</span>
         </div>
         <div class="repuesto-detalle">${detalle}</div>
@@ -205,15 +272,9 @@ function mostrarResultados(repuestos, total, hayFiltros) {
   }).join("");
   $("resultados").innerHTML =
     `<p class="resumen">${textoResumen(repuestos.length, total, hayFiltros)}</p>` + filasRepuestos;
+
   $("resultados").querySelectorAll(".repuesto-foto img").forEach((imagen) => {
-    function mostrarSinImagen() {
-      const texto = document.createElement("span");
-      texto.className = "sin-imagen";
-      texto.textContent = "Sin imagen";
-      imagen.replaceWith(texto);
-    }
-    imagen.addEventListener("error", mostrarSinImagen, { once: true });
-    if (imagen.complete && imagen.naturalWidth === 0) mostrarSinImagen();
+    vigilarImagen(imagen);
   });
 }
 
@@ -236,7 +297,7 @@ function mostrarSinStock() {
   mostrarAviso("sin-stock", "Sin stock en ninguna sucursal", "Prueba con otro repuesto del mismo vehículo o consulta más tarde.");
 }
 function mostrarNoEncontrado() {
-  mostrarAviso("vacio", "No se encontró el repuesto que busca", "Revisa la ortografía o escribe solo una palabra, por ejemplo «filtro».");
+  mostrarAviso("vacio", "No se encontraron resultados", "Revisa la ortografía o escribe solo una palabra, por ejemplo «filtro».");
 }
 function mostrarErrorInventario() {
   mostrarAviso("error", "No se pudo consultar el stock, intenta de nuevo más tarde");

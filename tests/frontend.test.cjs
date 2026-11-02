@@ -59,6 +59,18 @@ test("buscar sin criterios pide un término sin consultar ni borrar el catálogo
   assert.equal(elemento("repuesto").atributos["aria-invalid"], "true");
 });
 
+test("cada tarjeta enlaza al identificador de su propio repuesto", async () => {
+  const { contexto, elemento } = await prepararCatalogo();
+  contexto.fetch = async () => respuesta({ total: 2, repuestos: [
+    { id: 42, nombre: "Bujía", precio: 5, sucursales: [] },
+    { id: 73, nombre: "Filtro", precio: 12, sucursales: [] }
+  ] });
+  await contexto.buscarRepuestos();
+  const html = elemento("resultados").innerHTML;
+  assert.match(html, /href="pages\/detalle\.html\?id=42" aria-label="Ver detalle de Bujía"/);
+  assert.match(html, /href="pages\/detalle\.html\?id=73" aria-label="Ver detalle de Filtro"/);
+});
+
 test("una respuesta antigua de modelos no reemplaza la marca actual", async () => {
   const { contexto, elemento } = await prepararCatalogo();
   const antigua = diferida();
@@ -135,6 +147,20 @@ test("precio y stock cero se mantienen visibles y los datos se escapan", async (
   assert.match(elemento("mensajes").innerHTML, /Sin stock en ninguna sucursal/);
 });
 
+test("fabricante real, ID interno y detalle se muestran sin imagen", async () => {
+  const { contexto, elemento } = await prepararCatalogo();
+  elemento("repuesto").value = "filtro";
+  contexto.fetch = async () => respuesta({ total: 1, repuestos: [{
+    id: 12, nombre: "Filtro", fabricante: "Bosch", precio: 12.5,
+    imagen: null, sucursales: []
+  }] });
+  await contexto.buscarRepuestos();
+  assert.match(elemento("resultados").innerHTML, /Bosch/);
+  assert.match(elemento("resultados").innerHTML, /ID interno: 12/);
+  assert.match(elemento("resultados").innerHTML, /pages\/detalle.html\?id=12/);
+  assert.match(elemento("resultados").innerHTML, /Sin imagen/);
+});
+
 test("una búsqueda antigua no reemplaza el resultado más reciente", async () => {
   const { contexto, elemento } = await prepararCatalogo();
   const antigua = diferida();
@@ -148,6 +174,6 @@ test("una búsqueda antigua no reemplaza el resultado más reciente", async () =
     nombre: "Filtro antiguo", precio: 5, sucursales: []
   }] }));
   await pendiente;
-  assert.match(elemento("mensajes").innerHTML, /No se encontró el repuesto que busca/);
+  assert.match(elemento("mensajes").innerHTML, /No se encontraron resultados/);
   assert.doesNotMatch(elemento("resultados").innerHTML, /Filtro antiguo/);
 });

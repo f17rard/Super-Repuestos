@@ -23,7 +23,7 @@ T_REPUESTOS = os.getenv(
 )  # id, nombre, descripcion, precio_base, categoria, vehiculo_id
 T_INVENTARIO = os.getenv("TABLA_INVENTARIO", "inventario")  # id, repuesto_id, sucursal_id, stock
 T_SUCURSALES = os.getenv("TABLA_SUCURSALES", "sucursales")  # id, nombre, direccion
-T_CATEGORIAS = "categorias"
+T_CATEGORIAS = os.getenv("TABLA_CATEGORIAS", "categorias")
 
 NOMBRES_CATEGORIAS = {
     "motor": "Motor",
@@ -97,6 +97,37 @@ def armar_seleccion(con_vehiculo: bool) -> str:
     """
 
 
+def obtener_repuesto_por_id(repuesto_id: int) -> dict | None:
+    """Consulta por identidad, sin depender de los filtros del listado."""
+    filas = (
+        get_db()
+        .table(T_REPUESTOS)
+        .select(armar_seleccion(con_vehiculo=False))
+        .eq("id", repuesto_id)
+        .limit(1)
+        .execute()
+        .data
+    )
+    if not filas:
+        return None
+    fila = filas[0]
+    return {
+        "id": fila["id"],
+        "nombre": fila["nombre"],
+        "descripcion": fila.get("descripcion"),
+        "precio": fila["precio_base"],
+        "imagen": url_imagen(fila.get("imagen_path")),
+        "sucursales": [
+            {
+                "nombre": (inventario.get(T_SUCURSALES) or {}).get("nombre", "Sucursal sin nombre"),
+                "direccion": (inventario.get(T_SUCURSALES) or {}).get("direccion"),
+                "stock": inventario.get("stock"),
+            }
+            for inventario in (fila.get(T_INVENTARIO) or [])
+        ],
+    }
+
+
 def obtener_marcas() -> list[str]:
     filas = traer_todo(lambda: get_db().table(T_MARCAS).select("nombre"))
     return sorted({f["nombre"] for f in filas})
@@ -143,6 +174,19 @@ def obtener_id_categoria(categoria: str) -> int | None:
 
     return respuesta.data[0]["id"]
 
+def obtener_id_categoria(categoria: str) -> int | None:
+    filas = (
+        get_db()
+        .table(T_CATEGORIAS)
+        .select("id")
+        .eq("nombre", NOMBRES_CATEGORIAS[categoria])
+        .limit(1)
+        .execute()
+        .data
+    )
+    return filas[0]["id"] if filas else None
+
+
 def obtener_repuestos(
     marca: str | None,
     modelo: str | None,
@@ -153,10 +197,10 @@ def obtener_repuestos(
 ) -> list[dict]:
     con_vehiculo = bool(marca or modelo or anio is not None)
     seleccion = armar_seleccion(con_vehiculo)
-    id_categoria = (
-    obtener_id_categoria(categoria)
-    if categoria else None
-)
+    id_categoria = obtener_id_categoria(categoria) if categoria else None
+    if categoria and id_categoria is None:
+        # Una categoría ausente no debe devolver todo el catálogo.
+        return []
 
     def construir_consulta():
         # order("id") da un orden estable al paginar
@@ -170,11 +214,8 @@ def obtener_repuestos(
             consulta = consulta.eq(f"{T_VEHICULOS}.{T_MODELOS}.nombre", modelo)
         if marca:
             consulta = consulta.eq(f"{T_VEHICULOS}.{T_MODELOS}.{T_MARCAS}.nombre", marca)
-if categoria:
-    consulta = consulta.eq(
-        "categoria_id",
-        id_categoria if id_categoria is not None else -1
-    )
+        if categoria:
+            consulta = consulta.eq("categoria_id", id_categoria)
         return consulta
 
     filas = traer_todo(construir_consulta, maximo=maximo)

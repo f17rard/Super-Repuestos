@@ -4,7 +4,7 @@ No depende de HTTP ni del cliente de Supabase; usa el repositorio para obtener d
 """
 
 from backend import repositorio
-from backend.control_de_errores import validar_categoria, validar_stock
+from backend.control_de_errores import ErrorRepuestoNoEncontrado, validar_categoria, validar_stock
 
 LIMITE_RESULTADOS = 24
 MAX_FILAS_RELEVANCIA = 5000
@@ -46,6 +46,15 @@ def ordenar_por_relevancia(repuestos: list[dict], palabras: list[str]) -> list[d
     return sorted(repuestos, key=clave)
 
 
+def consultar_detalle(repuesto_id: int) -> dict:
+    repuesto = repositorio.obtener_repuesto_por_id(repuesto_id)
+    if repuesto is None:
+        raise ErrorRepuestoNoEncontrado()
+    for sucursal in repuesto["sucursales"]:
+        sucursal["stock"] = stock_inventario(sucursal)
+    return repuesto
+
+
 def listar_marcas() -> list[str]:
     return repositorio.obtener_marcas()
 
@@ -56,6 +65,32 @@ def listar_modelos(marca: str) -> list[str]:
 
 def listar_anios(marca: str, modelo: str) -> list[int]:
     return repositorio.obtener_anios(marca, modelo)
+
+
+def coincide_busqueda(pieza: dict, palabras: list[str]) -> bool:
+    """Busca nombre, descripción o ID interno sin inventar un SKU."""
+    if not palabras:
+        return True
+    codigo = str(pieza.get("codigo") or pieza.get("id") or "").casefold()
+    if len(palabras) == 1 and palabras[0] == codigo:
+        return True
+    texto = f"{pieza.get('nombre') or ''} {pieza.get('descripcion') or ''}".casefold()
+    return all(palabra in texto for palabra in palabras)
+
+
+def normalizar_stock(repuestos: list[dict]) -> list[dict]:
+    for pieza in repuestos:
+        for sucursal in pieza["sucursales"]:
+            sucursal["stock"] = stock_inventario(sucursal)
+    return repuestos
+
+
+def preparar_resultado(
+    repuestos: list[dict], palabras: list[str], categoria: str | None, limite: int
+) -> dict:
+    repuestos = normalizar_stock(repuestos)
+    repuestos = ordenar_por_relevancia(repuestos, palabras)
+    return {"total": len(repuestos), "repuestos": repuestos[:limite]}
 
 
 def buscar_repuestos(
@@ -73,9 +108,6 @@ def buscar_repuestos(
     palabras = (repuesto or "").lower().split()
     con_vehiculo = bool(marca or modelo or anio is not None)
     maximo = MAX_FILAS_RELEVANCIA if (palabras or con_vehiculo or categoria) else limite
-    repuestos = repositorio.obtener_repuestos(marca, modelo, anio, palabras, categoria, maximo)
-    for pieza in repuestos:
-        for sucursal in pieza["sucursales"]:
-            sucursal["stock"] = stock_inventario(sucursal)
-    repuestos = ordenar_por_relevancia(repuestos, palabras)
-    return {"total": len(repuestos), "repuestos": repuestos[:limite]}
+    repuestos = repositorio.obtener_repuestos(marca, modelo, anio, [], categoria, maximo)
+    repuestos = [pieza for pieza in repuestos if coincide_busqueda(pieza, palabras)]
+    return preparar_resultado(repuestos, palabras, categoria, limite)

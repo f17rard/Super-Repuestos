@@ -1,0 +1,6 @@
+.repuesto-marca, .repuesto-codigo { margin: .2rem 0; font-size: .9rem; }
+.repuesto-marca { font-weight: 600; }
+.repuesto-codigo { opacity: .75; }
+.enlace-detalle { display: inline-flex; align-items: center; justify-content: center;
+  margin-top: .8rem; text-decoration: none; width: fit-content; }
+.enlace-detalle:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }

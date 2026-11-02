@@ -38,6 +38,12 @@ class ErrorStockInvalido(ErrorInventario):
     codigo = "STOCK_INVALIDO"
 
 
+class ErrorRepuestoNoEncontrado(ErrorInventario):
+    codigo = "REPUESTO_NO_ENCONTRADO"
+    estado_http = 404
+    mensaje = "No se encontró el repuesto solicitado."
+
+
 def validar_categoria(categoria: str | None) -> None:
     if categoria is not None and categoria not in CATEGORIAS_VALIDAS:
         raise ErrorFiltroInvalido()
