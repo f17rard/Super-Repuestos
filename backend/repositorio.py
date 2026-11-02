@@ -23,6 +23,17 @@ T_REPUESTOS = os.getenv(
 )  # id, nombre, descripcion, precio_base, categoria, vehiculo_id
 T_INVENTARIO = os.getenv("TABLA_INVENTARIO", "inventario")  # id, repuesto_id, sucursal_id, stock
 T_SUCURSALES = os.getenv("TABLA_SUCURSALES", "sucursales")  # id, nombre, direccion
+T_CATEGORIAS = os.getenv("TABLA_CATEGORIAS", "categorias")
+
+NOMBRES_CATEGORIAS = {
+    "motor": "Motor",
+    "electrico": "Eléctrico",
+    "frenos": "Frenos",
+    "transmision": "Transmisión",
+    "suspension": "Suspensión",
+    "aire_acondicionado": "Aire acondicionado",
+    "accesorios": "Accesorios",
+}
 
 PAGINA = 1000  # filas por petición a Supabase (su límite por defecto)
 
@@ -147,6 +158,19 @@ def obtener_anios(marca: str, modelo: str) -> list[int]:
     return sorted({f["anio"] for f in filas}, reverse=True)
 
 
+def obtener_id_categoria(categoria: str) -> int | None:
+    filas = (
+        get_db()
+        .table(T_CATEGORIAS)
+        .select("id")
+        .eq("nombre", NOMBRES_CATEGORIAS[categoria])
+        .limit(1)
+        .execute()
+        .data
+    )
+    return filas[0]["id"] if filas else None
+
+
 def obtener_repuestos(
     marca: str | None,
     modelo: str | None,
@@ -157,6 +181,10 @@ def obtener_repuestos(
 ) -> list[dict]:
     con_vehiculo = bool(marca or modelo or anio is not None)
     seleccion = armar_seleccion(con_vehiculo)
+    id_categoria = obtener_id_categoria(categoria) if categoria else None
+    if categoria and id_categoria is None:
+        # Una categoría ausente no debe devolver todo el catálogo.
+        return []
 
     def construir_consulta():
         # order("id") da un orden estable al paginar
@@ -171,7 +199,7 @@ def obtener_repuestos(
         if marca:
             consulta = consulta.eq(f"{T_VEHICULOS}.{T_MODELOS}.{T_MARCAS}.nombre", marca)
         if categoria:
-            consulta = consulta.eq("categoria", categoria)
+            consulta = consulta.eq("categoria_id", id_categoria)
         return consulta
 
     filas = traer_todo(construir_consulta, maximo=maximo)

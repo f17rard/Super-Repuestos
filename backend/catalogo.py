@@ -89,8 +89,6 @@ def preparar_resultado(
     repuestos: list[dict], palabras: list[str], categoria: str | None, limite: int
 ) -> dict:
     repuestos = normalizar_stock(repuestos)
-    if categoria:
-        repuestos = [r for r in repuestos if any(s["stock"] > 0 for s in r["sucursales"])]
     repuestos = ordenar_por_relevancia(repuestos, palabras)
     return {"total": len(repuestos), "repuestos": repuestos[:limite]}
 

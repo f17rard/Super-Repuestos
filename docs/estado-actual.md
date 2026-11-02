@@ -1,6 +1,6 @@
 # Estado actual del catálogo
 
-El catálogo permite consultar repuestos por nombre, filtros opcionales de vehículo y categorías. Muestra precio y existencias por sucursal. Las categorías incluyen solo piezas con stock; la búsqueda general conserva los repuestos agotados con su precio y su aviso correspondiente.
+El catálogo permite consultar repuestos por nombre, filtros opcionales de vehículo y categorías. Muestra precio y existencias por sucursal. El filtro resuelve el nombre en `categorias` y consulta `repuestos.categoria_id`. Como en el ajuste reciente de main, las categorías conservan los repuestos agotados con su precio; la disponibilidad influye en el orden de los resultados.
 
 ## Ejecución y configuración
 

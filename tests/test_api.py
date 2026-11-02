@@ -21,7 +21,7 @@ def producto(identificador=1, stock=5, nombre="Filtro de aceite", categoria="mot
         "id": identificador,
         "nombre": nombre,
         "precio_base": 12.5,
-        "categoria": categoria,
+        "categoria_id": list(repositorio.NOMBRES_CATEGORIAS).index(categoria) + 1,
         "imagen_path": "motor/filtro aceite.png",
         repositorio.T_INVENTARIO: [
             {
@@ -49,7 +49,28 @@ def simular_inventario(monkeypatch, filas):
 
     consulta.execute.side_effect = lambda: SimpleNamespace(data=seleccion)
     base = Mock()
-    base.table.return_value = consulta
+
+    def tabla(nombre):
+        if nombre != repositorio.T_CATEGORIAS:
+            return consulta
+        categorias = Mock()
+        categorias.select.return_value = categorias
+        categorias.limit.return_value = categorias
+
+        def buscar_categoria(columna, valor):
+            categorias.execute.return_value = SimpleNamespace(
+                data=[
+                    {"id": indice}
+                    for indice, etiqueta in enumerate(repositorio.NOMBRES_CATEGORIAS.values(), 1)
+                    if etiqueta == valor
+                ]
+            )
+            return categorias
+
+        categorias.eq.side_effect = buscar_categoria
+        return categorias
+
+    base.table.side_effect = tabla
     monkeypatch.setattr(repositorio, "get_db", lambda: base)
     return consulta
 
@@ -115,7 +136,7 @@ def test_busqueda_conserva_precio_y_stock_cero(cliente, monkeypatch):
     assert repuesto["sucursales"][0]["stock"] == 0
 
 
-def test_categoria_solo_incluye_repuestos_propios_disponibles(cliente, monkeypatch):
+def test_categoria_solo_incluye_repuestos_propios_incluso_agotados(cliente, monkeypatch):
     consulta = simular_inventario(
         monkeypatch,
         [
@@ -126,14 +147,27 @@ def test_categoria_solo_incluye_repuestos_propios_disponibles(cliente, monkeypat
     )
     respuesta = cliente.get("/api/repuestos?categoria=motor")
     assert respuesta.status_code == 200
-    assert respuesta.json()["total"] == 1
+    assert respuesta.json()["total"] == 2
     assert respuesta.json()["repuestos"][0]["id"] == 2
-    consulta.eq.assert_called_once_with("categoria", "motor")
+    assert respuesta.json()["repuestos"][1]["id"] == 1
+    consulta.eq.assert_called_once_with("categoria_id", 1)
 
 
-def test_categoria_sin_stock_devuelve_lista_vacia(cliente, monkeypatch):
+def test_categoria_sin_stock_conserva_producto_y_precio(cliente, monkeypatch):
     simular_inventario(monkeypatch, [producto(stock=0)])
-    assert cliente.get("/api/repuestos?categoria=motor").json() == {"total": 0, "repuestos": []}
+    respuesta = cliente.get("/api/repuestos?categoria=motor")
+    assert respuesta.status_code == 200
+    assert respuesta.json()["total"] == 1
+    assert respuesta.json()["repuestos"][0]["precio"] == 12.5
+    assert respuesta.json()["repuestos"][0]["sucursales"][0]["stock"] == 0
+
+
+def test_categoria_no_registrada_no_devuelve_catalogo_completo(cliente, monkeypatch):
+    monkeypatch.setattr(repositorio, "obtener_id_categoria", lambda categoria: None)
+    respuesta = cliente.get("/api/repuestos?categoria=motor")
+    assert respuesta.status_code == 200
+    assert respuesta.json() == {"total": 0, "repuestos": []}
+    repositorio.get_db.assert_not_called()
 
 
 def test_stock_corrupto_devuelve_503(cliente, monkeypatch):

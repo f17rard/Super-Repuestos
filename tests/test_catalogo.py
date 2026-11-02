@@ -8,7 +8,7 @@ from backend import catalogo
 from backend.control_de_errores import ErrorFiltroInvalido
 
 
-def test_categoria_filtra_agotados_antes_de_limitar(monkeypatch):
+def test_categoria_prioriza_stock_y_conserva_total_antes_de_limitar(monkeypatch):
     obtener = Mock(
         return_value=[
             {"id": 1, "nombre": "Filtro", "sucursales": [{"stock": None}]},
@@ -17,7 +17,7 @@ def test_categoria_filtra_agotados_antes_de_limitar(monkeypatch):
     )
     monkeypatch.setattr(catalogo.repositorio, "obtener_repuestos", obtener)
     resultado = catalogo.buscar_repuestos(categoria=" motor ", limite=1)
-    assert resultado["total"] == 1
+    assert resultado["total"] == 2
     assert resultado["repuestos"][0]["id"] == 2
     obtener.assert_called_once_with(None, None, None, [], "motor", 5000)
 
