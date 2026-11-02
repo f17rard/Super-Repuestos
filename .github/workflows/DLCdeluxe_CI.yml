@@ -61,7 +61,7 @@ jobs:
       - name: Pruebas con cobertura
         run: |
           pytest --cov --cov-report=term-missing
-          node --test tests/frontend.test.cjs
+          node --test tests/frontend.test.cjs tests/detalle.test.cjs
 
       - name: "Humo: API y catálogo desde la raíz del proyecto"
         run: |

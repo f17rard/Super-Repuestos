@@ -341,6 +341,20 @@ select:focus, input:focus {
   text-transform: uppercase;
   color: var(--dark-placeholder);
 }
+.ver-detalle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-red);
+  color: var(--white);
+  font-weight: 700;
+  text-decoration: none;
+}
+.ver-detalle:hover { background: var(--primary-red-hover); }
+.ver-detalle:focus-visible { outline: 2px solid var(--white); outline-offset: 3px; }
 .repuesto-cab {
   position: relative;
   display: flex;

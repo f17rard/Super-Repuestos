@@ -86,6 +86,37 @@ def armar_seleccion(con_vehiculo: bool) -> str:
     """
 
 
+def obtener_repuesto_por_id(repuesto_id: int) -> dict | None:
+    """Consulta por identidad, sin depender de los filtros del listado."""
+    filas = (
+        get_db()
+        .table(T_REPUESTOS)
+        .select(armar_seleccion(con_vehiculo=False))
+        .eq("id", repuesto_id)
+        .limit(1)
+        .execute()
+        .data
+    )
+    if not filas:
+        return None
+    fila = filas[0]
+    return {
+        "id": fila["id"],
+        "nombre": fila["nombre"],
+        "descripcion": fila.get("descripcion"),
+        "precio": fila["precio_base"],
+        "imagen": url_imagen(fila.get("imagen_path")),
+        "sucursales": [
+            {
+                "nombre": (inventario.get(T_SUCURSALES) or {}).get("nombre", "Sucursal sin nombre"),
+                "direccion": (inventario.get(T_SUCURSALES) or {}).get("direccion"),
+                "stock": inventario.get("stock"),
+            }
+            for inventario in (fila.get(T_INVENTARIO) or [])
+        ],
+    }
+
+
 def obtener_marcas() -> list[str]:
     filas = traer_todo(lambda: get_db().table(T_MARCAS).select("nombre"))
     return sorted({f["nombre"] for f in filas})

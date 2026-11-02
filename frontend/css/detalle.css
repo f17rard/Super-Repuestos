@@ -7,6 +7,8 @@
   --radio: 10px;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
+.volver:focus-visible,.marca-sitio:focus-visible { outline:2px solid var(--blanco); outline-offset:4px; }
 body { margin: 0; color: var(--texto); background: var(--pagina); font-family: "Segoe UI", Arial, sans-serif; line-height: 1.5; }
 button, input, select, textarea { font: inherit; }
 .detalle-header { min-height: 78px; padding: 16px max(5vw, 20px); display:flex; align-items:center; justify-content:space-between; gap:20px; background:var(--fondo); border-bottom:4px solid var(--rojo); }
