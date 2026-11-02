@@ -113,13 +113,3 @@ def buscar_repuestos(
     repuestos = repositorio.obtener_repuestos(marca, modelo, anio, [], categoria, maximo)
     repuestos = [pieza for pieza in repuestos if coincide_busqueda(pieza, palabras)]
     return preparar_resultado(repuestos, palabras, categoria, limite)
-
-
-def obtener_detalle(repuesto_id: int) -> dict | None:
-    piezas = repositorio.obtener_repuestos(None, None, None, [], None, MAX_FILAS_RELEVANCIA)
-    pieza = next((p for p in piezas if p["id"] == repuesto_id), None)
-    if pieza is None:
-        return None
-    normalizar_stock([pieza])
-    imagenes = [{"url": pieza["imagen"]}] if pieza.get("imagen") else []
-    return {**pieza, "imagenes": imagenes}

@@ -7,9 +7,8 @@ Se conserva backend.main:app como punto de entrada local y en Vercel.
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, Query, Request
 from fastapi import Path as ParametroRuta
-
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -100,16 +99,7 @@ def obtener_detalle(
     repuesto_id: int = ParametroRuta(..., ge=1, le=2147483647),
 ) -> dict:
     try:
-        pieza = catalogo.obtener_detalle(repuesto_id)
-    except ErrorInventario:
-        raise
-    except Exception as exc:
-        raise error_bd(exc)
-
-    if pieza is None:
-        raise HTTPException(status_code=404, detail="Repuesto no encontrado")
-    return pieza
-
+        return catalogo.consultar_detalle(repuesto_id)
     except ErrorInventario:
         raise
     except Exception as exc:

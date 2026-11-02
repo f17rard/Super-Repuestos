@@ -260,6 +260,8 @@ function mostrarResultados(repuestos, total, hayFiltros) {
           : '<span class="sin-imagen">Sin imagen</span>'}</div>
         <div class="repuesto-cab">
           <h2>${escapar(r.nombre)}</h2>
+          ${r.marca_fabricante || r.fabricante ? `<p class="repuesto-marca">${escapar(r.marca_fabricante || r.fabricante)}</p>` : ""}
+          <p class="repuesto-codigo">${escapar(r.codigo ? `Código: ${r.codigo}` : `ID interno: ${r.id}`)}</p>
           ${r.descripcion ? `<p class="repuesto-desc">${escapar(r.descripcion)}</p>` : ""}
           <span class="precio">${formatoPrecio.format(r.precio)}</span>
           <a class="ver-detalle" href="pages/detalle.html?id=${encodeURIComponent(String(r.id))}" aria-label="Ver detalle de ${escapar(r.nombre)}">Ver detalle</a>

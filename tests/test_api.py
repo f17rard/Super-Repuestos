@@ -156,11 +156,9 @@ def test_catalogo_inicial_admite_filtros_vacios(cliente, monkeypatch):
 
 
 def test_detalle_repuesto_y_404(cliente, monkeypatch):
-    monkeypatch.setattr(
-        catalogo, "obtener_detalle",
-        lambda identificador: producto(identificador) if identificador == 4 else None,
-    )
+    simular_inventario(monkeypatch, [producto(4)])
     assert cliente.get("/api/repuestos/4").json()["id"] == 4
+    simular_inventario(monkeypatch, [])
     assert cliente.get("/api/repuestos/55").status_code == 404
 
 

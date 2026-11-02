@@ -47,10 +47,18 @@ def test_categoria_invalida_no_consulta_repositorio(monkeypatch):
 
 def test_busqueda_usa_descripcion_e_id_interno(monkeypatch):
     piezas = [
-        {"id": 8, "nombre": "Filtro", "descripcion": "Aceite sintético",
-         "sucursales": [{"stock": 2}]},
-        {"id": 15, "nombre": "Pastillas", "descripcion": "Cerámica silenciosa",
-         "sucursales": [{"stock": 2}]},
+        {
+            "id": 8,
+            "nombre": "Filtro",
+            "descripcion": "Aceite sintético",
+            "sucursales": [{"stock": 2}],
+        },
+        {
+            "id": 15,
+            "nombre": "Pastillas",
+            "descripcion": "Cerámica silenciosa",
+            "sucursales": [{"stock": 2}],
+        },
     ]
     obtener = Mock(return_value=piezas)
     monkeypatch.setattr(catalogo.repositorio, "obtener_repuestos", obtener)
@@ -59,10 +67,9 @@ def test_busqueda_usa_descripcion_e_id_interno(monkeypatch):
     assert obtener.call_args.args[3] == []
 
 
-def test_detalle_sin_imagen_devuelve_lista_vacia(monkeypatch):
-    pieza = {"id": 42, "nombre": "Pastillas", "imagen": None,
-             "sucursales": [{"stock": 0}]}
-    monkeypatch.setattr(catalogo.repositorio, "obtener_repuestos", Mock(return_value=[pieza]))
-    detalle = catalogo.obtener_detalle(42)
-    assert detalle["imagenes"] == []
+def test_detalle_sin_imagen_conserva_null(monkeypatch):
+    pieza = {"id": 42, "nombre": "Pastillas", "imagen": None, "sucursales": [{"stock": 0}]}
+    monkeypatch.setattr(catalogo.repositorio, "obtener_repuesto_por_id", Mock(return_value=pieza))
+    detalle = catalogo.consultar_detalle(42)
+    assert detalle["imagen"] is None
     assert detalle["sucursales"][0]["stock"] == 0
