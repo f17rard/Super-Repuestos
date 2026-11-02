@@ -37,6 +37,7 @@ def simular_inventario(monkeypatch, filas):
     consulta.select.return_value = consulta
     consulta.order.return_value = consulta
     consulta.range.return_value = consulta
+    consulta.limit.return_value = consulta
     consulta.ilike.return_value = consulta
     consulta.eq.side_effect = lambda columna, valor: filtrar(columna, valor)
     seleccion = list(filas)
@@ -242,3 +243,68 @@ def test_catalogo_y_detalle_conservado_se_sirven_desde_la_app(cliente):
     assert cliente.get("/js/app.js").status_code == 200
     assert cliente.get("/pages/detalle.html").status_code == 200
     assert cliente.get("/js/detalle.js").status_code == 200
+
+
+def test_detalle_devuelve_producto_correcto_sin_depender_del_listado(cliente, monkeypatch):
+    consulta = simular_inventario(monkeypatch, [producto(1), producto(42, nombre="Bujía")])
+    respuesta = cliente.get("/api/repuestos/42")
+    assert respuesta.status_code == 200
+    datos = respuesta.json()
+    assert datos["id"] == 42
+    assert datos["nombre"] == "Bujía"
+    assert datos["precio"] == 12.5
+    assert set(datos) == {"id", "nombre", "descripcion", "precio", "imagen", "sucursales"}
+    consulta.eq.assert_called_once_with("id", 42)
+    consulta.limit.assert_called_once_with(1)
+
+
+def test_detalle_inexistente_responde_404(cliente, monkeypatch):
+    simular_inventario(monkeypatch, [])
+    respuesta = cliente.get("/api/repuestos/42")
+    assert respuesta.status_code == 404
+    assert respuesta.json()["detail"]["codigo"] == "REPUESTO_NO_ENCONTRADO"
+
+
+@pytest.mark.parametrize("identificador", ["0", "-1", "texto", "2147483648"])
+def test_detalle_id_invalido_no_consulta_bd(cliente, identificador):
+    assert cliente.get(f"/api/repuestos/{identificador}").status_code == 422
+    repositorio.get_db.assert_not_called()
+
+
+def test_detalle_inventario_caido_responde_503(cliente):
+    respuesta = cliente.get("/api/repuestos/42")
+    assert respuesta.status_code == 503
+    assert respuesta.json()["detail"]["codigo"] == "BD_NO_DISPONIBLE"
+
+
+def test_detalle_admite_imagen_y_descripcion_ausentes(cliente, monkeypatch):
+    fila = producto(42)
+    fila.pop("imagen_path")
+    simular_inventario(monkeypatch, [fila])
+    respuesta = cliente.get("/api/repuestos/42")
+    assert respuesta.status_code == 200
+    assert respuesta.json()["imagen"] is None
+    assert respuesta.json()["descripcion"] is None
+
+
+def test_detalle_conserva_todas_las_sucursales_y_stock_cero(cliente, monkeypatch):
+    fila = producto(42)
+    fila[repositorio.T_INVENTARIO] = [
+        {"stock": stock, repositorio.T_SUCURSALES: {"nombre": nombre, "direccion": "Centro"}}
+        for nombre, stock in [("Santa Tecla", 5), ("San Salvador", 0), ("Santa Ana", 3)]
+    ]
+    simular_inventario(monkeypatch, [fila])
+    respuesta = cliente.get("/api/repuestos/42")
+    assert respuesta.status_code == 200
+    assert [(s["nombre"], s["stock"]) for s in respuesta.json()["sucursales"]] == [
+        ("Santa Tecla", 5),
+        ("San Salvador", 0),
+        ("Santa Ana", 3),
+    ]
+
+
+def test_detalle_stock_corrupto_es_error_de_inventario(cliente, monkeypatch):
+    simular_inventario(monkeypatch, [producto(42, stock=-1)])
+    respuesta = cliente.get("/api/repuestos/42")
+    assert respuesta.status_code == 503
+    assert respuesta.json()["detail"]["codigo"] == "STOCK_INVALIDO"

@@ -225,8 +225,52 @@ function vigilarImagen(imagen) {
 }
 
 function mostrarResultados(repuestos, total, hayFiltros) {
-  $("resultados").innerHTML = `<p class="resumen">${textoResumen(repuestos.length, total, hayFiltros)}</p>`
-    + repuestos.map(tarjetaRepuesto).join("");
+  const filasRepuestos = repuestos.map((r) => {
+    // Primero las sucursales con más stock: el mecánico ve de inmediato dónde está la pieza
+    const sucursales = [...r.sucursales].sort((a, b) => b.stock - a.stock);
+    const conStock = sucursales.filter((s) => s.stock > 0).length;
+    const disponibilidad = conStock > 0
+      ? `En stock en ${conStock} de ${sucursales.length} ${sucursales.length === 1 ? "sucursal" : "sucursales"}`
+      : "Sin stock";
+    const filas = sucursales.map((s) => `
+      <tr>
+        <td>
+          <span class="sucursal-nombre">${escapar(s.nombre)}</span>
+          ${s.direccion ? `<span class="sucursal-direccion">${escapar(s.direccion)}</span>` : ""}
+        </td>
+        <td class="num ${s.stock > 0 ? "stock-ok" : "stock-cero"}">${escapar(s.stock)}</td>
+      </tr>`).join("");
+    // Compacto por defecto: una sola línea de resumen; la tabla se despliega al hacer clic
+    const detalle = sucursales.length
+      ? `<details class="sucursales">
+          <summary>
+            <span>Stock por sucursal (${conStock}/${sucursales.length} con stock)</span>
+            <span class="sucursales-flecha" aria-hidden="true"></span>
+          </summary>
+          <table>
+            <thead><tr><th>Sucursal</th><th class="num">Stock</th></tr></thead>
+            <tbody>${filas}</tbody>
+          </table>
+        </details>`
+      : `<p class="sucursal-vacia">Este repuesto no tiene sucursales registradas.</p>`;
+    return `
+      <article class="repuesto">
+        <div class="repuesto-foto">${r.imagen
+          ? `<img src="${escapar(r.imagen)}" alt="${escapar(r.nombre)}" loading="lazy">`
+          : '<span class="sin-imagen">Sin imagen</span>'}</div>
+        <div class="repuesto-cab">
+          <h2>${escapar(r.nombre)}</h2>
+          ${r.descripcion ? `<p class="repuesto-desc">${escapar(r.descripcion)}</p>` : ""}
+          <span class="precio">${formatoPrecio.format(r.precio)}</span>
+          <a class="ver-detalle" href="pages/detalle.html?id=${encodeURIComponent(String(r.id))}" aria-label="Ver detalle de ${escapar(r.nombre)}">Ver detalle</a>
+          <span class="disponibilidad ${conStock > 0 ? "stock-ok" : "stock-cero"}">${disponibilidad}</span>
+        </div>
+        <div class="repuesto-detalle">${detalle}</div>
+      </article>`;
+  }).join("");
+  $("resultados").innerHTML =
+    `<p class="resumen">${textoResumen(repuestos.length, total, hayFiltros)}</p>` + filasRepuestos;
+
   $("resultados").querySelectorAll(".repuesto-foto img").forEach((imagen) => {
     vigilarImagen(imagen);
   });

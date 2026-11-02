@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Detalle del repuesto, imágenes, valoración y disponibilidad por sucursal.">
+  <meta name="description" content="Consulta la imagen, descripción y precio base del repuesto.">
   <title>Detalle del repuesto | Super-Repuestos</title>
   <link rel="stylesheet" href="../css/detalle.css">
 </head>
@@ -26,13 +26,13 @@
           <img id="foto-principal" class="foto-principal" alt="">
           <span id="sin-foto" class="sin-foto" hidden>IMAGEN NO DISPONIBLE</span>
         </div>
-        <div id="miniaturas" class="miniaturas" aria-label="Imágenes del producto"></div>
+        <div id="miniaturas" class="miniaturas" aria-label="Imágenes del producto" hidden></div>
       </div>
 
       <section class="producto-info panel" aria-labelledby="nombre-producto">
         <p class="etiqueta-roja">REPUESTO AUTOMOTRIZ</p>
         <h1 id="nombre-producto">Producto</h1>
-        <div class="valoracion-resumen">
+        <div class="valoracion-resumen" hidden>
           <span id="estrellas" class="estrellas" aria-label="Sin valoraciones">☆☆☆☆☆</span>
           <span id="resumen-valoraciones">Sin valoraciones todavía</span>
         </div>
@@ -41,10 +41,10 @@
           <span class="precio-label">PRECIO BASE</span>
           <strong id="precio-producto" class="precio">$0.00</strong>
         </div>
-        <button id="btn-favorito" class="btn-favorito" type="button" aria-pressed="false">
+        <button id="btn-favorito" class="btn-favorito" type="button" aria-pressed="false" hidden>
           <span aria-hidden="true">♡</span> Agregar a favoritos
         </button>
-        <p id="estado-favorito" class="texto-ayuda" aria-live="polite"></p>
+        <p id="estado-favorito" class="texto-ayuda" aria-live="polite" hidden></p>
 
         <section class="sucursales-bloque" aria-labelledby="titulo-sucursales">
           <h2 id="titulo-sucursales">Disponibilidad por sucursal</h2>

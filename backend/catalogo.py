@@ -4,7 +4,7 @@ No depende de HTTP ni del cliente de Supabase; usa el repositorio para obtener d
 """
 
 from backend import repositorio
-from backend.control_de_errores import validar_categoria, validar_stock
+from backend.control_de_errores import ErrorRepuestoNoEncontrado, validar_categoria, validar_stock
 
 LIMITE_RESULTADOS = 24
 MAX_FILAS_RELEVANCIA = 5000
@@ -44,6 +44,15 @@ def ordenar_por_relevancia(repuestos: list[dict], palabras: list[str]) -> list[d
         return (-puntos, -con_stock, -stock_total, r["nombre"].lower())
 
     return sorted(repuestos, key=clave)
+
+
+def consultar_detalle(repuesto_id: int) -> dict:
+    repuesto = repositorio.obtener_repuesto_por_id(repuesto_id)
+    if repuesto is None:
+        raise ErrorRepuestoNoEncontrado()
+    for sucursal in repuesto["sucursales"]:
+        sucursal["stock"] = stock_inventario(sucursal)
+    return repuesto
 
 
 def listar_marcas() -> list[str]:

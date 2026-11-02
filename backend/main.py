@@ -8,6 +8,8 @@ import logging
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import Path as ParametroRuta
+
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -94,16 +96,24 @@ def buscar_repuestos(
 
 
 @app.get("/api/repuestos/{repuesto_id}")
-def obtener_detalle(repuesto_id: int) -> dict:
+def obtener_detalle(
+    repuesto_id: int = ParametroRuta(..., ge=1, le=2147483647),
+) -> dict:
     try:
         pieza = catalogo.obtener_detalle(repuesto_id)
     except ErrorInventario:
         raise
     except Exception as exc:
         raise error_bd(exc)
+
     if pieza is None:
         raise HTTPException(status_code=404, detail="Repuesto no encontrado")
     return pieza
+
+    except ErrorInventario:
+        raise
+    except Exception as exc:
+        raise error_bd(exc)
 
 
 # Las rutas de la API se registran antes del frontend estático.
