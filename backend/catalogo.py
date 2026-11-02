@@ -77,8 +77,5 @@ def buscar_repuestos(
     for pieza in repuestos:
         for sucursal in pieza["sucursales"]:
             sucursal["stock"] = stock_inventario(sucursal)
-    if categoria:
-        # RN2 de categorías: solo piezas disponibles; la búsqueda conserva los agotados.
-        repuestos = [r for r in repuestos if any(s["stock"] > 0 for s in r["sucursales"])]
     repuestos = ordenar_por_relevancia(repuestos, palabras)
     return {"total": len(repuestos), "repuestos": repuestos[:limite]}
