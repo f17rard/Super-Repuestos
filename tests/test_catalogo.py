@@ -8,6 +8,26 @@ from backend import catalogo
 from backend.control_de_errores import ErrorFiltroInvalido
 
 
+@pytest.mark.parametrize("total, tamanos", [(0, [0]), (10, [10]), (11, [10, 1]), (25, [10, 10, 5])])
+def test_catalogo_pagina_en_orden_sin_omitir_repuestos(monkeypatch, total, tamanos):
+    piezas = [
+        {"id": i, "nombre": f"Pieza {i:02d}", "sucursales": [{"stock": int(i == 0)}]}
+        for i in range(total)
+    ]
+    obtener = Mock(return_value=list(reversed(piezas)))
+    monkeypatch.setattr(catalogo.repositorio, "obtener_repuestos", obtener)
+    ids = []
+    for pagina, tamano in enumerate(tamanos, start=1):
+        resultado = catalogo.buscar_repuestos(limite=10, pagina=pagina)
+        assert resultado["total"] == total
+        assert resultado["pagina"] == pagina
+        assert resultado["hay_stock"] == bool(total)
+        assert len(resultado["repuestos"]) == tamano
+        ids.extend(pieza["id"] for pieza in resultado["repuestos"])
+    assert ids == list(range(total))
+    assert obtener.call_args.args[-1] is None
+
+
 def test_categoria_prioriza_stock_y_conserva_total_antes_de_limitar(monkeypatch):
     obtener = Mock(
         return_value=[

@@ -225,6 +225,18 @@ select:focus, input:focus {
 .boton:active { transform: translate(var(--iman-x, 0px), calc(var(--iman-y, 0px) + 1px)) scale(0.98); }
 .boton:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
 .boton:disabled { background-color: var(--dark-input); color: var(--dark-placeholder); cursor: progress; transform: none; }
+
+#paginacion:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+#paginacion .boton { width: auto; }
+#paginacion .boton:disabled { cursor: default; }
 .estado { grid-column: 1 / -1; color: var(--dark-muted); font-size: 0.9rem; }
 .estado:empty { display: none; }
 

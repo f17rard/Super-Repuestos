@@ -193,7 +193,7 @@ def obtener_repuestos(
     anio: int | None,
     palabras: list[str],
     categoria: str | None,
-    maximo: int,
+    maximo: int | None,
 ) -> list[dict]:
     con_vehiculo = bool(marca or modelo or anio is not None)
     seleccion = armar_seleccion(con_vehiculo)

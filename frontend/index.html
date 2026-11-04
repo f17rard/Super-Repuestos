@@ -61,10 +61,15 @@
 
     <div class="panel-resultados">
       <!-- ===== T3: Resultado de búsqueda ===== -->
-      <section id="resultados" aria-live="polite"></section>
+      <section id="resultados" aria-label="Repuestos" aria-live="polite" tabindex="-1"></section>
 
       <!-- ===== T4 (sin stock), T5 (no encontrado) y T6 (error de inventario) ===== -->
       <section id="mensajes" aria-live="polite"></section>
+      <nav id="paginacion" aria-label="Páginas de repuestos" hidden>
+        <button type="button" class="boton" id="pagina-anterior">Anterior</button>
+        <span id="pagina-actual" aria-live="polite"></span>
+        <button type="button" class="boton" id="pagina-siguiente">Siguiente</button>
+      </nav>
     </div>
   </div>
 </main>

@@ -41,6 +41,47 @@ function respuesta(datos, estado = 200) {
   return { ok: estado === 200, status: estado, json: async () => datos };
 }
 
+test("el catálogo pagina de diez en diez y reinicia al buscar", async () => {
+  const { contexto, elemento } = await prepararCatalogo();
+  const piezas = Array.from({ length: 21 }, (_, i) => ({
+    id: i + 1, nombre: `Repuesto ${i + 1}`, precio: 5, sucursales: []
+  }));
+  contexto.fetch = async (url) => {
+    const params = new URLSearchParams(url.split("?")[1]);
+    const pagina = Number(params.get("pagina"));
+    assert.equal(params.get("limite"), "10");
+    const resultados = params.has("repuesto") ? piezas.slice(0, 10) : piezas;
+    return respuesta({ total: resultados.length, pagina,
+      repuestos: resultados.slice((pagina - 1) * 10, pagina * 10) });
+  };
+  const idsVisibles = () => Array.from(
+    elemento("resultados").innerHTML.matchAll(/detalle\.html\?id=(\d+)/g),
+    (enlace) => Number(enlace[1])
+  );
+  const siguiente = elemento("pagina-siguiente");
+  const anterior = elemento("pagina-anterior");
+  assert.equal(elemento("paginacion").hidden, true);
+  await contexto.buscarRepuestos();
+  assert.equal(anterior.disabled, true);
+  assert.equal(siguiente.disabled, false);
+  assert.equal(elemento("paginacion").hidden, false);
+  const ids = idsVisibles();
+  assert.equal(ids.length, 10);
+  elemento("repuesto").value = "Repuesto";
+  await siguiente.eventos.click();
+  assert.equal(elemento("pagina-actual").textContent, "Página 2 de 3");
+  ids.push(...idsVisibles());
+  await siguiente.eventos.click();
+  assert.equal(siguiente.disabled, true);
+  ids.push(...idsVisibles());
+  assert.deepEqual(ids, piezas.map((pieza) => pieza.id));
+  await anterior.eventos.click();
+  assert.equal(elemento("pagina-actual").textContent, "Página 2 de 3");
+  await contexto.buscarRepuestos();
+  assert.equal(elemento("paginacion").hidden, true);
+  assert.deepEqual(idsVisibles(), ids.slice(0, 10));
+});
+
 function diferida() {
   let resolver;
   const promesa = new Promise((resolve) => { resolver = resolve; });
@@ -135,7 +176,7 @@ test("inventario caído muestra el mensaje de CA4 y libera la búsqueda", async 
 test("precio y stock cero se mantienen visibles y los datos se escapan", async () => {
   const { contexto, elemento } = await prepararCatalogo();
   elemento("repuesto").value = "filtro";
-  contexto.fetch = async () => respuesta({ total: 1, repuestos: [{
+  contexto.fetch = async () => respuesta({ total: 1, hay_stock: false, repuestos: [{
     nombre: "<script>pieza</script>", precio: 12.5, imagen: null,
     sucursales: [{ nombre: "Santa Tecla", stock: 0 }]
   }] });

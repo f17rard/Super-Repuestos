@@ -85,9 +85,10 @@ def buscar_repuestos(
     repuesto: str | None = Query(None, max_length=100),
     categoria: str | None = Query(None),
     limite: int = Query(catalogo.LIMITE_RESULTADOS, ge=1, le=100),
+    pagina: int | None = Query(None, ge=1),
 ) -> dict:
     try:
-        return catalogo.buscar_repuestos(marca, modelo, anio, repuesto, categoria, limite)
+        return catalogo.buscar_repuestos(marca, modelo, anio, repuesto, categoria, limite, pagina)
     except ErrorInventario:
         raise
     except Exception as exc:

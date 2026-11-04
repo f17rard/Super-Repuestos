@@ -96,6 +96,18 @@ def test_inventario_caido_responde_503_sin_detalles_internos(cliente, ruta):
     assert "BD simulada" not in respuesta.text
 
 
+def test_api_devuelve_el_repuesto_restante_en_la_segunda_pagina(cliente, monkeypatch):
+    simular_inventario(
+        monkeypatch, [producto(i, nombre=f"Pieza {i:02d}") for i in range(1, 12)]
+    )
+    respuesta = cliente.get("/api/repuestos?pagina=2&limite=10")
+    assert respuesta.status_code == 200
+    datos = respuesta.json()
+    assert datos["total"] == 11
+    assert datos["pagina"] == 2
+    assert [pieza["id"] for pieza in datos["repuestos"]] == [11]
+
+
 @pytest.mark.parametrize(
     "ruta",
     [
@@ -103,6 +115,7 @@ def test_inventario_caido_responde_503_sin_detalles_internos(cliente, ruta):
         "/api/anios?marca=Toyota",
         "/api/repuestos?anio=texto",
         "/api/repuestos?limite=0",
+        "/api/repuestos?pagina=0",
         "/api/repuestos?repuesto=" + "x" * 101,
     ],
 )

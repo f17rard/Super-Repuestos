@@ -107,6 +107,10 @@ $("modelo").addEventListener("change", (e) => cargarAnios($("marca").value, e.ta
 
 /* ---------- T3: resultado de búsqueda ---------- */
 const ESQUELETOS_RESULTADOS = 3;
+const REPUESTOS_POR_PAGINA = 10;
+let filtrosActuales = {};
+let paginaActual = 1;
+let totalPaginas = 0;
 
 /* ---------- Filtros por categoría ----------
    Los valores coinciden con las categorías válidas del backend (motor, electrico, …). */
@@ -329,22 +333,37 @@ function leerFiltros() {
 // El número de petición vive en el DOM: si llega tarde una respuesta vieja, se descarta
 const esPeticionVieja = (numero) => Number($("resultados").dataset.peticion) !== numero;
 
-async function buscarRepuestos() {
-  limpiarPantalla();
-  const filtros = leerFiltros();
+function actualizarPaginacion(cargando) {
+  $("paginacion").hidden = totalPaginas <= 1;
+  $("pagina-actual").textContent = `Página ${paginaActual} de ${totalPaginas}`;
+  $("pagina-anterior").disabled = cargando || paginaActual <= 1;
+  $("pagina-siguiente").disabled = cargando || paginaActual >= totalPaginas;
+}
+
+async function buscarRepuestos(pagina = 1, navegando = false) {
+  if (!navegando) {
+    limpiarPantalla();
+    totalPaginas = 0;
+  }
+  const filtros = navegando ? filtrosActuales : leerFiltros();
   const hayFiltros = Object.keys(filtros).length > 0;
   const numero = Number($("resultados").dataset.peticion || 0) + 1;
   $("resultados").dataset.peticion = String(numero);
 
   const boton = $("btn-buscar");
   boton.disabled = true;
+  actualizarPaginacion(true);
   $("estado").textContent = "Buscando…";
-  mostrarEsqueleto(hayFiltros ? "Buscando repuestos…" : "Cargando el catálogo…");
+  if (!navegando) mostrarEsqueleto(hayFiltros ? "Buscando repuestos…" : "Cargando el catálogo…");
 
   try {
-    const { total, repuestos } = await api("repuestos", filtros);
+    const datos = await api("repuestos", { ...filtros, pagina, limite: REPUESTOS_POR_PAGINA });
     if (esPeticionVieja(numero)) return;
-    $("resultados").innerHTML = ""; // quita el esqueleto de carga
+    const { total, repuestos, hay_stock: hayStock } = datos;
+    filtrosActuales = filtros;
+    paginaActual = datos.pagina ?? pagina;
+    totalPaginas = Math.ceil(total / REPUESTOS_POR_PAGINA);
+    limpiarPantalla();
 
     if (repuestos.length === 0) {
       if (filtros.categoria) {
@@ -356,20 +375,24 @@ async function buscarRepuestos() {
 
     mostrarResultados(repuestos, total, hayFiltros); // T3
 
-    const hayStock = repuestos.some((r) => r.sucursales.some((s) => s.stock > 0));
-    if (hayFiltros && !hayStock) mostrarSinStock();
+    if (hayFiltros && hayStock === false) mostrarSinStock();
+    if (navegando) $("resultados").focus();
   } catch (err) {
     if (esPeticionVieja(numero)) return;
     console.error(err);
-    $("resultados").innerHTML = "";
+    if (!navegando) $("resultados").innerHTML = "";
     mostrarErrorBusqueda(err);
   } finally {
     if (!esPeticionVieja(numero)) {
       boton.disabled = false;
+      actualizarPaginacion(false);
       $("estado").textContent = "";
     }
   }
 }
+
+$("pagina-anterior").addEventListener("click", () => buscarRepuestos(paginaActual - 1, true));
+$("pagina-siguiente").addEventListener("click", () => buscarRepuestos(paginaActual + 1, true));
 
 $("form-busqueda").addEventListener("submit", (e) => {
   e.preventDefault();
