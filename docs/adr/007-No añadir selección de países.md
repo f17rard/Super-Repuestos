@@ -1,4 +1,4 @@
-# ADR-008: No añadir selección de países
+# ADR-007: No añadir selección de países
 
 **Clasificación:** Alcance.
 

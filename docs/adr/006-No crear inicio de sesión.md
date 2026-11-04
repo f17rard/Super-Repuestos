@@ -1,4 +1,4 @@
-# ADR-007: No crear inicio de sesión
+# ADR-006: No crear inicio de sesión
 
 **Clasificación:** Alcance.
 

@@ -1,4 +1,4 @@
-# ADR-009: Paginación de 10 repuestos por página en lugar de 12
+# ADR-008: Paginación de 10 repuestos por página en lugar de 12
 
 **Clasificación:** Alcance.
 

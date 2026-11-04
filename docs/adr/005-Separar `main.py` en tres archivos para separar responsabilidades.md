@@ -1,4 +1,4 @@
-# ADR-006: Separar `main.py` en tres archivos para separar responsabilidades
+# ADR-005: Separar `main.py` en tres archivos para separar responsabilidades
 
 **Clasificación:** Mejora / refactorización.
 
