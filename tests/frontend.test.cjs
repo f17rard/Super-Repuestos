@@ -42,6 +42,52 @@ function respuesta(datos, estado = 200) {
   return { ok: estado === 200, status: estado, json: async () => datos };
 }
 
+test("reintentar sucursales habilita el filtro después de un fallo temporal", async () => {
+  const { contexto, elemento } = await prepararCatalogo();
+  const reintentar = elemento("reintentar-sucursales");
+  contexto.fetch = async () => respuesta({}, 503);
+  await reintentar.eventos.click();
+  assert.equal(elemento("sucursal").disabled, true);
+  assert.equal(reintentar.hidden, false);
+
+  contexto.fetch = async () => respuesta([{ id: 1, nombre: "Sucursal Central" }]);
+  await reintentar.eventos.click();
+  assert.equal(elemento("sucursal").disabled, false);
+  assert.match(elemento("sucursal").innerHTML, /value="1">Sucursal Central/);
+  assert.equal(elemento("err-sucursal").textContent, "");
+  assert.equal(reintentar.hidden, true);
+});
+
+test("limpiar filtros restablece el catálogo y descarta los modelos pendientes", async () => {
+  const { contexto, elemento } = await prepararCatalogo();
+  const consultas = [];
+  let resolverModelos;
+  contexto.fetch = async (url) => {
+    consultas.push(url);
+    if (url.startsWith("/api/modelos")) {
+      return new Promise((resolve) => { resolverModelos = resolve; });
+    }
+    return respuesta({ total: 0, repuestos: [] });
+  };
+  elemento("marca").value = "Mazda";
+  elemento("repuesto").value = "Filtro";
+  elemento("sucursal").value = "1";
+  elemento("categorias").dataset.activa = "motor";
+  const pendiente = contexto.cargarModelos("Mazda");
+
+  await elemento("limpiar-filtros").eventos.click();
+  resolverModelos(respuesta(["Mazda 3"]));
+  await pendiente;
+
+  assert.equal(elemento("marca").value, "");
+  assert.equal(elemento("repuesto").value, "");
+  assert.equal(elemento("sucursal").value, "");
+  assert.equal(elemento("categorias").dataset.activa, "");
+  assert.equal(elemento("modelo").disabled, true);
+  assert.equal(elemento("anio").disabled, true);
+  assert.equal(consultas.at(-1), "/api/repuestos?pagina=1&limite=10");
+});
+
 test("el menú móvil aplica la categoría y se cierra devolviendo el foco", async () => {
   const { contexto, elemento } = await prepararCatalogo(true);
   const boton = elemento("categorias-toggle");

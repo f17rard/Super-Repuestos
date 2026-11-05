@@ -8,6 +8,18 @@ from backend import catalogo
 from backend.control_de_errores import ErrorFiltroInvalido
 
 
+def test_filtro_sucursal_aplica_stock_antes_de_paginar(monkeypatch):
+    repuestos = [
+        {"id": 1, "nombre": "A", "sucursales": [{"id": 1, "stock": 8}, {"id": 2, "stock": 0}]},
+        {"id": 2, "nombre": "B", "sucursales": [{"id": 2, "stock": 3}]},
+        {"id": 3, "nombre": "C", "sucursales": [{"id": 2, "stock": 2}]},
+    ]
+    monkeypatch.setattr(catalogo.repositorio, "obtener_repuestos", Mock(return_value=repuestos))
+    resultado = catalogo.buscar_repuestos(limite=1, pagina=2, sucursal_id=2)
+    assert resultado["total"] == 2
+    assert [pieza["id"] for pieza in resultado["repuestos"]] == [3]
+
+
 @pytest.mark.parametrize("total, tamanos", [(0, [0]), (10, [10]), (11, [10, 1]), (25, [10, 10, 5])])
 def test_catalogo_pagina_en_orden_sin_omitir_repuestos(monkeypatch, total, tamanos):
     piezas = [

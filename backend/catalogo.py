@@ -59,6 +59,10 @@ def listar_marcas() -> list[str]:
     return repositorio.obtener_marcas()
 
 
+def listar_sucursales() -> list[dict]:
+    return repositorio.obtener_sucursales()
+
+
 def listar_modelos(marca: str) -> list[str]:
     return repositorio.obtener_modelos(marca)
 
@@ -112,6 +116,7 @@ def buscar_repuestos(
     categoria: str | None = None,
     limite: int = LIMITE_RESULTADOS,
     pagina: int | None = None,
+    sucursal_id: int | None = None,
 ) -> dict:
     marca = (marca or "").strip() or None
     modelo = (modelo or "").strip() or None
@@ -120,8 +125,16 @@ def buscar_repuestos(
     palabras = (repuesto or "").lower().split()
     con_vehiculo = bool(marca or modelo or anio is not None)
     maximo = MAX_FILAS_RELEVANCIA if (palabras or con_vehiculo or categoria) else limite
-    if pagina is not None:
+    if pagina is not None or sucursal_id is not None:
         maximo = None
     repuestos = repositorio.obtener_repuestos(marca, modelo, anio, [], categoria, maximo)
     repuestos = [pieza for pieza in repuestos if coincide_busqueda(pieza, palabras)]
+    if sucursal_id is not None:
+        repuestos = [
+            pieza for pieza in repuestos
+            if any(
+                sucursal.get("id") == sucursal_id and stock_inventario(sucursal) > 0
+                for sucursal in pieza["sucursales"]
+            )
+        ]
     return preparar_resultado(repuestos, palabras, categoria, limite, pagina)

@@ -58,6 +58,20 @@
     <span class="estado" id="estado" role="status" aria-live="polite"></span>
   </form>
 
+  <div class="controles-catalogo">
+    <div class="campo filtro-sucursal">
+      <label for="sucursal">Sucursal</label>
+      <div class="campo-select">
+        <select id="sucursal" aria-describedby="err-sucursal" disabled>
+          <option value="">Todas las sucursales</option>
+        </select>
+      </div>
+      <span class="msg-campo" id="err-sucursal" role="status">Cargando sucursales…</span>
+      <button type="button" class="boton boton-secundario" id="reintentar-sucursales" hidden>Reintentar</button>
+    </div>
+    <button type="button" class="boton boton-secundario" id="limpiar-filtros">Limpiar filtros</button>
+  </div>
+
   <!-- ===== Layout: menú de categorías a la izquierda, resultados a la derecha ===== -->
   <div class="contenido">
     <aside class="menu-lateral">

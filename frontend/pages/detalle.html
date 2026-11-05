@@ -38,8 +38,13 @@
         </div>
         <p id="descripcion-producto" class="descripcion">Sin descripción disponible.</p>
         <div class="precio-bloque">
+          <label class="precio-label" for="sucursal-detalle">SUCURSAL</label>
+          <select id="sucursal-detalle" aria-describedby="estado-sucursal-detalle" disabled>
+            <option value="">Selecciona una sucursal</option>
+          </select>
           <span class="precio-label">PRECIO BASE</span>
           <strong id="precio-producto" class="precio">$0.00</strong>
+          <p id="estado-sucursal-detalle" class="estado-sucursal-detalle" role="status"></p>
         </div>
         <button id="btn-favorito" class="btn-favorito" type="button" aria-pressed="false" hidden>
           <span aria-hidden="true">♡</span> Agregar a favoritos

@@ -85,6 +85,32 @@ async function cargarModelos(marca) {
   }
 }
 
+async function cargarSucursales() {
+  const selector = $("sucursal");
+  const estado = $("err-sucursal");
+  const reintentar = $("reintentar-sucursales");
+  reintentar.disabled = true;
+  estado.textContent = "Cargando sucursales…";
+  try {
+    const sucursales = await api("sucursales");
+    selector.innerHTML = '<option value="">Todas las sucursales</option>' +
+      sucursales.map(({ id, nombre }) =>
+        `<option value="${escapar(id)}">${escapar(nombre)}</option>`).join("");
+    selector.disabled = sucursales.length === 0;
+    estado.textContent = sucursales.length ? "" : "No hay sucursales registradas.";
+    if (document.activeElement === reintentar && !selector.disabled) selector.focus();
+    reintentar.hidden = true;
+  } catch (error) {
+    console.error(error);
+    estado.textContent = error.status === 404
+      ? "El filtro de sucursales no está disponible en esta versión del servidor."
+      : "No se pudieron cargar las sucursales.";
+    reintentar.hidden = error.status === 404;
+  } finally {
+    reintentar.disabled = false;
+  }
+}
+
 async function cargarAnios(marca, modelo) {
   const numero = Number($("anio").dataset.peticion || 0) + 1;
   $("anio").dataset.peticion = String(numero);
@@ -347,7 +373,8 @@ function leerFiltros() {
     modelo: $("modelo").value,
     anio: $("anio").value,
     repuesto: $("repuesto").value.trim(),
-    categoria: $("categorias").dataset.activa || ""
+    categoria: $("categorias").dataset.activa || "",
+    sucursal_id: $("sucursal").value
   };
   return Object.fromEntries(Object.entries(filtros).filter(([, valor]) => valor));
 }
@@ -388,7 +415,9 @@ async function buscarRepuestos(pagina = 1, navegando = false) {
     limpiarPantalla();
 
     if (repuestos.length === 0) {
-      if (filtros.categoria) {
+      if (filtros.sucursal_id) {
+        mostrarAviso("vacio", "No hay repuestos con stock en esta sucursal para los filtros seleccionados", "Prueba otra sucursal o ajusta la búsqueda.");
+      } else if (filtros.categoria) {
         mostrarAviso("vacio", "Por el momento no hay repuestos disponibles en esta categoría", "Selecciona «Todas» para quitar el filtro de categoría.");
       } else if (hayFiltros) mostrarNoEncontrado();
       else mostrarAviso("vacio", "Aún no hay repuestos en el catálogo");
@@ -413,6 +442,17 @@ async function buscarRepuestos(pagina = 1, navegando = false) {
   }
 }
 
+$("sucursal").addEventListener("change", () => buscarRepuestos());
+$("reintentar-sucursales").addEventListener("click", cargarSucursales);
+$("limpiar-filtros").addEventListener("click", () => {
+  for (const id of ["marca", "repuesto", "sucursal"]) $(id).value = "";
+  cargarModelos("");
+  $("categorias").dataset.activa = "";
+  $("categorias-toggle").setAttribute("aria-expanded", "false");
+  pintarCategorias();
+  limpiarErrorRepuesto();
+  return buscarRepuestos();
+});
 $("pagina-anterior").addEventListener("click", () => buscarRepuestos(paginaActual - 1, true));
 $("pagina-siguiente").addEventListener("click", () => buscarRepuestos(paginaActual + 1, true));
 
@@ -424,17 +464,19 @@ $("form-busqueda").addEventListener("submit", (e) => {
     $("repuesto").focus();
     return;
   }
-  $("err-repuesto").textContent = "";
-  $("repuesto").removeAttribute("aria-invalid");
+  limpiarErrorRepuesto();
   buscarRepuestos();
 });
 
-$("repuesto").addEventListener("input", () => {
+function limpiarErrorRepuesto() {
   $("err-repuesto").textContent = "";
   $("repuesto").removeAttribute("aria-invalid");
-});
+}
+
+$("repuesto").addEventListener("input", limpiarErrorRepuesto);
 
 activarIman($("btn-buscar"));
 pintarCategorias();
 cargarMarcas();
+cargarSucursales();
 buscarRepuestos();

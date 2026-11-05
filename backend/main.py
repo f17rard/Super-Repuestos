@@ -54,6 +54,14 @@ def listar_marcas() -> list[str]:
         raise error_bd(exc)
 
 
+@app.get("/api/sucursales")
+def listar_sucursales() -> list[dict]:
+    try:
+        return catalogo.listar_sucursales()
+    except Exception as exc:
+        raise error_bd(exc)
+
+
 @app.get("/api/modelos")
 def listar_modelos(marca: str = Query(..., min_length=1)) -> list[str]:
     try:
@@ -86,9 +94,12 @@ def buscar_repuestos(
     categoria: str | None = Query(None),
     limite: int = Query(catalogo.LIMITE_RESULTADOS, ge=1, le=100),
     pagina: int | None = Query(None, ge=1),
+    sucursal_id: int | None = Query(None, ge=1, le=2147483647),
 ) -> dict:
     try:
-        return catalogo.buscar_repuestos(marca, modelo, anio, repuesto, categoria, limite, pagina)
+        return catalogo.buscar_repuestos(
+            marca, modelo, anio, repuesto, categoria, limite, pagina, sucursal_id
+        )
     except ErrorInventario:
         raise
     except Exception as exc:

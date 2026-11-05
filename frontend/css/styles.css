@@ -227,6 +227,22 @@ select:focus, input:focus {
 .msg-campo { color: var(--error-on-dark); font-size: 0.85rem; }
 .msg-campo:empty { display: none; }
 
+.controles-catalogo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+.filtro-sucursal {
+  width: min(100%, 320px);
+  padding: 14px 16px;
+  background-color: var(--dark-card);
+  border: 1px solid var(--dark-line);
+  border-radius: var(--radius-sm);
+  color-scheme: dark;
+}
+
 /* El margen iguala la altura de la etiqueta (0.8rem x 1.5) más el gap, para alinear el botón con los campos */
 .acciones { display: flex; align-items: center; margin-top: calc(0.8rem * 1.5 + 8px); }
 .boton {
@@ -248,6 +264,14 @@ select:focus, input:focus {
 .boton:active { transform: translate(var(--iman-x, 0px), calc(var(--iman-y, 0px) + 1px)) scale(0.98); }
 .boton:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
 .boton:disabled { background-color: var(--dark-input); color: var(--dark-placeholder); cursor: progress; transform: none; }
+.controles-catalogo .boton-secundario {
+  width: auto;
+  padding-inline: 16px;
+  background-color: var(--dark-card);
+  border: 1px solid var(--dark-line);
+}
+.controles-catalogo .boton-secundario:hover { background-color: var(--dark-input); }
+.controles-catalogo .boton-secundario:focus-visible { outline-color: var(--primary-red); }
 
 #paginacion:not([hidden]) {
   display: flex;

@@ -5,7 +5,7 @@ const { join } = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
 
-async function preparar(busqueda, estado = 200, producto = {}) {
+async function preparar(busqueda, estado = 200, producto = {}, sucursales = []) {
   const elementos = new Map();
   const consultas = [];
   function elemento(id) {
@@ -24,7 +24,10 @@ async function preparar(busqueda, estado = 200, producto = {}) {
     console: { error() {} },
     fetch: async (url) => {
       consultas.push(url);
-      return { ok: estado === 200, status: estado, json: async () => producto };
+      return {
+        ok: estado === 200, status: estado,
+        json: async () => url === "/api/sucursales" ? sucursales : producto
+      };
     }
   });
   vm.runInContext(readFileSync(join(__dirname, "../frontend/js/detalle.js"), "utf8"), contexto);
@@ -37,7 +40,7 @@ test("carga únicamente el repuesto seleccionado y muestra su precio real", asyn
     id: 42, nombre: "Bujía", descripcion: "Descripción", precio: 0,
     imagen: "https://example.com/bujia.png"
   });
-  assert.deepEqual(consultas, ["/api/repuestos/42"]);
+  assert.deepEqual(consultas, ["/api/repuestos/42", "/api/sucursales"]);
   assert.equal(elemento("nombre-producto").textContent, "Bujía");
   assert.equal(elemento("descripcion-producto").textContent, "Descripción");
   assert.match(elemento("precio-producto").textContent, /0[.,]00/);
@@ -53,6 +56,21 @@ test("imagen y descripción ausentes tienen alternativa visible", async () => {
   const { elemento } = await preparar("?id=42", 200, { nombre: "Filtro", precio: 12.5 });
   assert.equal(elemento("sin-foto").hidden, false);
   assert.equal(elemento("descripcion-producto").textContent, "Sin descripción disponible.");
+});
+
+test("abre en Central y muestra Agotado para una sucursal sin inventario", async () => {
+  const { elemento } = await preparar("?id=42", 200, {
+    nombre: "Filtro", precio: 12.5, sucursales: [{ id: 1, stock: 5 }]
+  }, [{ id: 2, nombre: "Sucursal Santa Tecla" }, { id: 1, nombre: "Sucursal Central" }]);
+  const selector = elemento("sucursal-detalle");
+  const estado = elemento("estado-sucursal-detalle");
+  assert.equal(selector.value, "1");
+  assert.equal(estado.textContent, "En stock: 5");
+  selector.value = "2";
+  selector.eventos.change();
+  assert.equal(estado.textContent, "Agotado");
+  assert.match(elemento("precio-producto").textContent, /12[.,]50/);
+  assert.match(elemento("filas-sucursales").innerHTML, /Sucursal Santa Tecla/);
 });
 
 test("enlaces inválidos no consultan la API", async () => {
