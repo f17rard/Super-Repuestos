@@ -8,6 +8,38 @@ from backend import catalogo
 from backend.control_de_errores import ErrorFiltroInvalido
 
 
+def test_filtro_sucursal_aplica_stock_antes_de_paginar(monkeypatch):
+    repuestos = [
+        {"id": 1, "nombre": "A", "sucursales": [{"id": 1, "stock": 8}, {"id": 2, "stock": 0}]},
+        {"id": 2, "nombre": "B", "sucursales": [{"id": 2, "stock": 3}]},
+        {"id": 3, "nombre": "C", "sucursales": [{"id": 2, "stock": 2}]},
+    ]
+    monkeypatch.setattr(catalogo.repositorio, "obtener_repuestos", Mock(return_value=repuestos))
+    resultado = catalogo.buscar_repuestos(limite=1, pagina=2, sucursal_id=2)
+    assert resultado["total"] == 2
+    assert [pieza["id"] for pieza in resultado["repuestos"]] == [3]
+
+
+@pytest.mark.parametrize("total, tamanos", [(0, [0]), (10, [10]), (11, [10, 1]), (25, [10, 10, 5])])
+def test_catalogo_pagina_en_orden_sin_omitir_repuestos(monkeypatch, total, tamanos):
+    piezas = [
+        {"id": i, "nombre": f"Pieza {i:02d}", "sucursales": [{"stock": int(i == 0)}]}
+        for i in range(total)
+    ]
+    obtener = Mock(return_value=list(reversed(piezas)))
+    monkeypatch.setattr(catalogo.repositorio, "obtener_repuestos", obtener)
+    ids = []
+    for pagina, tamano in enumerate(tamanos, start=1):
+        resultado = catalogo.buscar_repuestos(limite=10, pagina=pagina)
+        assert resultado["total"] == total
+        assert resultado["pagina"] == pagina
+        assert resultado["hay_stock"] == bool(total)
+        assert len(resultado["repuestos"]) == tamano
+        ids.extend(pieza["id"] for pieza in resultado["repuestos"])
+    assert ids == list(range(total))
+    assert obtener.call_args.args[-1] is None
+
+
 def test_categoria_prioriza_stock_y_conserva_total_antes_de_limitar(monkeypatch):
     obtener = Mock(
         return_value=[

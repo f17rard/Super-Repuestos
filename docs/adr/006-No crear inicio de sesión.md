@@ -1,0 +1,16 @@
+# ADR-006: No crear inicio de sesión
+
+**Clasificación:** Alcance.
+
+## Contexto
+
+La aplicación funciona como catálogo y buscador de repuestos de acceso abierto: buscar, ver resultados y consultar el detalle de un repuesto no requiere identificar al usuario, y el tiempo del proyecto es limitado.
+
+## Decisión
+
+No implementar inicio de sesión ni gestión de usuarios.
+
+## Consecuencias
+
+- **Positivas:** se reduce la complejidad y el tiempo de desarrollo.
+- **Negativas:** no hay personalización, favoritos ni historial por usuario. Si en el futuro se necesita, habrá que diseñar la autenticación y adaptar la base de datos y el frontend.

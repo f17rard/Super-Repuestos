@@ -84,7 +84,7 @@ def escapar_like(texto: str) -> str:
 
 def armar_seleccion(con_vehiculo: bool) -> str:
     """Columnas a pedir. El vehículo solo se une (!inner) si algún filtro lo usa (RN1)."""
-    inventario = f"{T_INVENTARIO} ( stock, {T_SUCURSALES} ( nombre, direccion ) )"
+    inventario = f"{T_INVENTARIO} ( sucursal_id, stock, {T_SUCURSALES} ( nombre, direccion ) )"
     if not con_vehiculo:
         return f"id, nombre, descripcion, precio_base, imagen_path, {inventario}"
     return f"""
@@ -119,6 +119,7 @@ def obtener_repuesto_por_id(repuesto_id: int) -> dict | None:
         "imagen": url_imagen(fila.get("imagen_path")),
         "sucursales": [
             {
+                "id": inventario.get("sucursal_id"),
                 "nombre": (inventario.get(T_SUCURSALES) or {}).get("nombre", "Sucursal sin nombre"),
                 "direccion": (inventario.get(T_SUCURSALES) or {}).get("direccion"),
                 "stock": inventario.get("stock"),
@@ -131,6 +132,12 @@ def obtener_repuesto_por_id(repuesto_id: int) -> dict | None:
 def obtener_marcas() -> list[str]:
     filas = traer_todo(lambda: get_db().table(T_MARCAS).select("nombre"))
     return sorted({f["nombre"] for f in filas})
+
+
+def obtener_sucursales() -> list[dict]:
+    return traer_todo(
+        lambda: get_db().table(T_SUCURSALES).select("id,nombre,direccion").order("id")
+    )
 
 
 def obtener_modelos(marca: str) -> list[str]:
@@ -176,7 +183,7 @@ def obtener_repuestos(
     anio: int | None,
     palabras: list[str],
     categoria: str | None,
-    maximo: int,
+    maximo: int | None,
 ) -> list[dict]:
     con_vehiculo = bool(marca or modelo or anio is not None)
     seleccion = armar_seleccion(con_vehiculo)
@@ -211,6 +218,7 @@ def obtener_repuestos(
             "precio": fila["precio_base"],
             "sucursales": [
                 {
+                    "id": inventario.get("sucursal_id"),
                     "nombre": (inventario.get(T_SUCURSALES) or {}).get(
                         "nombre", "Sucursal sin nombre"
                     ),

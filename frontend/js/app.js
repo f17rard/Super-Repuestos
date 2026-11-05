@@ -85,6 +85,32 @@ async function cargarModelos(marca) {
   }
 }
 
+async function cargarSucursales() {
+  const selector = $("sucursal");
+  const estado = $("err-sucursal");
+  const reintentar = $("reintentar-sucursales");
+  reintentar.disabled = true;
+  estado.textContent = "Cargando sucursales…";
+  try {
+    const sucursales = await api("sucursales");
+    selector.innerHTML = '<option value="">Todas las sucursales</option>' +
+      sucursales.map(({ id, nombre }) =>
+        `<option value="${escapar(id)}">${escapar(nombre)}</option>`).join("");
+    selector.disabled = sucursales.length === 0;
+    estado.textContent = sucursales.length ? "" : "No hay sucursales registradas.";
+    if (document.activeElement === reintentar && !selector.disabled) selector.focus();
+    reintentar.hidden = true;
+  } catch (error) {
+    console.error(error);
+    estado.textContent = error.status === 404
+      ? "El filtro de sucursales no está disponible en esta versión del servidor."
+      : "No se pudieron cargar las sucursales.";
+    reintentar.hidden = error.status === 404;
+  } finally {
+    reintentar.disabled = false;
+  }
+}
+
 async function cargarAnios(marca, modelo) {
   const numero = Number($("anio").dataset.peticion || 0) + 1;
   $("anio").dataset.peticion = String(numero);
@@ -107,6 +133,10 @@ $("modelo").addEventListener("change", (e) => cargarAnios($("marca").value, e.ta
 
 /* ---------- T3: resultado de búsqueda ---------- */
 const ESQUELETOS_RESULTADOS = 3;
+const REPUESTOS_POR_PAGINA = 10;
+let filtrosActuales = {};
+let paginaActual = 1;
+let totalPaginas = 0;
 
 /* ---------- Filtros por categoría ----------
    Los valores coinciden con las categorías válidas del backend (motor, electrico, …). */
@@ -121,17 +151,39 @@ const CATEGORIAS = [
 ];
 
 function pintarCategorias() {
+  const valorActivo = $("categorias").dataset.activa || "";
+  const etiqueta = CATEGORIAS.find((categoria) => categoria.valor === valorActivo)?.etiqueta;
+  $("categorias-etiqueta").textContent = `Categorías · ${etiqueta || "Todas"}`;
   const boton = (valor, etiqueta) => {
-    const activa = ($("categorias").dataset.activa || "") === valor;
+    const activa = valorActivo === valor;
     return `<button type="button" class="cat-boton${activa ? " activa" : ""}" data-cat="${valor}" aria-pressed="${activa}">${etiqueta}</button>`;
   };
   $("categorias").innerHTML =
     boton("", "Todas") + CATEGORIAS.map((c) => boton(c.valor, c.etiqueta)).join("");
 }
 
+$("categorias-toggle").addEventListener("click", () => {
+  const boton = $("categorias-toggle");
+  boton.setAttribute("aria-expanded", String(boton.getAttribute("aria-expanded") !== "true"));
+});
+
+function cerrarCategorias() {
+  const boton = $("categorias-toggle");
+  if (boton.getAttribute("aria-expanded") !== "true") return;
+  boton.setAttribute("aria-expanded", "false");
+  if (window.matchMedia("(max-width: 768px)").matches) boton.focus();
+}
+
+for (const id of ["categorias-toggle", "categorias"]) {
+  $(id).addEventListener("keydown", (evento) => {
+    if (evento.key === "Escape") cerrarCategorias();
+  });
+}
+
 $("categorias").addEventListener("click", (e) => {
   const btn = e.target.closest(".cat-boton");
   if (!btn) return;
+  cerrarCategorias();
   if (($("categorias").dataset.activa || "") === btn.dataset.cat) return;
   $("categorias").dataset.activa = btn.dataset.cat;
   pintarCategorias();
@@ -321,7 +373,8 @@ function leerFiltros() {
     modelo: $("modelo").value,
     anio: $("anio").value,
     repuesto: $("repuesto").value.trim(),
-    categoria: $("categorias").dataset.activa || ""
+    categoria: $("categorias").dataset.activa || "",
+    sucursal_id: $("sucursal").value
   };
   return Object.fromEntries(Object.entries(filtros).filter(([, valor]) => valor));
 }
@@ -329,25 +382,42 @@ function leerFiltros() {
 // El número de petición vive en el DOM: si llega tarde una respuesta vieja, se descarta
 const esPeticionVieja = (numero) => Number($("resultados").dataset.peticion) !== numero;
 
-async function buscarRepuestos() {
-  limpiarPantalla();
-  const filtros = leerFiltros();
+function actualizarPaginacion(cargando) {
+  $("paginacion").hidden = totalPaginas <= 1;
+  $("pagina-actual").textContent = `Página ${paginaActual} de ${totalPaginas}`;
+  $("pagina-anterior").disabled = cargando || paginaActual <= 1;
+  $("pagina-siguiente").disabled = cargando || paginaActual >= totalPaginas;
+}
+
+async function buscarRepuestos(pagina = 1, navegando = false) {
+  if (!navegando) {
+    limpiarPantalla();
+    totalPaginas = 0;
+  }
+  const filtros = navegando ? filtrosActuales : leerFiltros();
   const hayFiltros = Object.keys(filtros).length > 0;
   const numero = Number($("resultados").dataset.peticion || 0) + 1;
   $("resultados").dataset.peticion = String(numero);
 
   const boton = $("btn-buscar");
   boton.disabled = true;
+  actualizarPaginacion(true);
   $("estado").textContent = "Buscando…";
-  mostrarEsqueleto(hayFiltros ? "Buscando repuestos…" : "Cargando el catálogo…");
+  if (!navegando) mostrarEsqueleto(hayFiltros ? "Buscando repuestos…" : "Cargando el catálogo…");
 
   try {
-    const { total, repuestos } = await api("repuestos", filtros);
+    const datos = await api("repuestos", { ...filtros, pagina, limite: REPUESTOS_POR_PAGINA });
     if (esPeticionVieja(numero)) return;
-    $("resultados").innerHTML = ""; // quita el esqueleto de carga
+    const { total, repuestos, hay_stock: hayStock } = datos;
+    filtrosActuales = filtros;
+    paginaActual = datos.pagina ?? pagina;
+    totalPaginas = Math.ceil(total / REPUESTOS_POR_PAGINA);
+    limpiarPantalla();
 
     if (repuestos.length === 0) {
-      if (filtros.categoria) {
+      if (filtros.sucursal_id) {
+        mostrarAviso("vacio", "No hay repuestos con stock en esta sucursal para los filtros seleccionados", "Prueba otra sucursal o ajusta la búsqueda.");
+      } else if (filtros.categoria) {
         mostrarAviso("vacio", "Por el momento no hay repuestos disponibles en esta categoría", "Selecciona «Todas» para quitar el filtro de categoría.");
       } else if (hayFiltros) mostrarNoEncontrado();
       else mostrarAviso("vacio", "Aún no hay repuestos en el catálogo");
@@ -356,20 +426,35 @@ async function buscarRepuestos() {
 
     mostrarResultados(repuestos, total, hayFiltros); // T3
 
-    const hayStock = repuestos.some((r) => r.sucursales.some((s) => s.stock > 0));
-    if (hayFiltros && !hayStock) mostrarSinStock();
+    if (hayFiltros && hayStock === false) mostrarSinStock();
+    if (navegando) $("resultados").focus();
   } catch (err) {
     if (esPeticionVieja(numero)) return;
     console.error(err);
-    $("resultados").innerHTML = "";
+    if (!navegando) $("resultados").innerHTML = "";
     mostrarErrorBusqueda(err);
   } finally {
     if (!esPeticionVieja(numero)) {
       boton.disabled = false;
+      actualizarPaginacion(false);
       $("estado").textContent = "";
     }
   }
 }
+
+$("sucursal").addEventListener("change", () => buscarRepuestos());
+$("reintentar-sucursales").addEventListener("click", cargarSucursales);
+$("limpiar-filtros").addEventListener("click", () => {
+  for (const id of ["marca", "repuesto", "sucursal"]) $(id).value = "";
+  cargarModelos("");
+  $("categorias").dataset.activa = "";
+  $("categorias-toggle").setAttribute("aria-expanded", "false");
+  pintarCategorias();
+  limpiarErrorRepuesto();
+  return buscarRepuestos();
+});
+$("pagina-anterior").addEventListener("click", () => buscarRepuestos(paginaActual - 1, true));
+$("pagina-siguiente").addEventListener("click", () => buscarRepuestos(paginaActual + 1, true));
 
 $("form-busqueda").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -379,17 +464,19 @@ $("form-busqueda").addEventListener("submit", (e) => {
     $("repuesto").focus();
     return;
   }
-  $("err-repuesto").textContent = "";
-  $("repuesto").removeAttribute("aria-invalid");
+  limpiarErrorRepuesto();
   buscarRepuestos();
 });
 
-$("repuesto").addEventListener("input", () => {
+function limpiarErrorRepuesto() {
   $("err-repuesto").textContent = "";
   $("repuesto").removeAttribute("aria-invalid");
-});
+}
+
+$("repuesto").addEventListener("input", limpiarErrorRepuesto);
 
 activarIman($("btn-buscar"));
 pintarCategorias();
 cargarMarcas();
+cargarSucursales();
 buscarRepuestos();

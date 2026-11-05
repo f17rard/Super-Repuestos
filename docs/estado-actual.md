@@ -36,3 +36,4 @@ Las rutas y las respuestas públicas se conservan. Para ejecutar localmente se u
 - `node --test tests/frontend.test.cjs tests/detalle.test.cjs`
 
 Las pruebas simulan el inventario y no utilizan la base de datos real. Las pruebas de JavaScript simulan el DOM; la revisión visual en navegador se realiza por separado.
+

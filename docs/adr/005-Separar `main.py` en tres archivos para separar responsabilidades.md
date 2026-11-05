@@ -1,0 +1,22 @@
+# ADR-005: Separar `main.py` en tres archivos para separar responsabilidades
+
+**Clasificación:** Mejora / refactorización.
+
+## Contexto
+
+`main.py` concentraba varias responsabilidades en un solo archivo: la conexión a la base de datos (`get_db()` con las credenciales de Supabase), la lógica de búsqueda y los endpoints. A medida que el archivo crecía se volvía más difícil de mantener.
+
+## Decisión
+
+Dividir `main.py` en tres archivos, cada uno con una responsabilidad:
+
+- `backend/main.py`: punto de entrada `backend.main:app`, rutas HTTP, traducción de errores y frontend estático.
+- `backend/catalogo.py`: normalización de filtros, validación de existencias, disponibilidad por categoría, relevancia y límites de resultados.
+- `backend/repositorio.py`: configuración del entorno, cliente de Supabase, consultas paginadas, relaciones y traducción de filas al formato del catálogo.
+
+El archivo `backend/control_de_errores.py` se mantiene como módulo compartido de errores y validaciones. Las rutas y las respuestas públicas se conservan, y el comando de inicio sigue siendo el mismo: `uvicorn backend.main:app --reload`.
+
+## Consecuencias
+
+- **Positivas:** mejora la legibilidad, facilita las pruebas y reduce conflictos entre integrantes.
+- **Negativas:** hay que invertir tiempo en la división, ajustar importaciones y validar que las pruebas y el despliegue en Vercel sigan funcionando; si se hace mal, puede romper la aplicación.

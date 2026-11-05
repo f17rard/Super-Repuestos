@@ -59,6 +59,10 @@ def listar_marcas() -> list[str]:
     return repositorio.obtener_marcas()
 
 
+def listar_sucursales() -> list[dict]:
+    return repositorio.obtener_sucursales()
+
+
 def listar_modelos(marca: str) -> list[str]:
     return repositorio.obtener_modelos(marca)
 
@@ -86,11 +90,22 @@ def normalizar_stock(repuestos: list[dict]) -> list[dict]:
 
 
 def preparar_resultado(
-    repuestos: list[dict], palabras: list[str], categoria: str | None, limite: int
+    repuestos: list[dict], palabras: list[str], categoria: str | None, limite: int,
+    pagina: int | None = None,
 ) -> dict:
     repuestos = normalizar_stock(repuestos)
     repuestos = ordenar_por_relevancia(repuestos, palabras)
-    return {"total": len(repuestos), "repuestos": repuestos[:limite]}
+    total = len(repuestos)
+    if pagina is None:
+        return {"total": total, "repuestos": repuestos[:limite]}
+    pagina = min(pagina, max(1, (total + limite - 1) // limite))
+    inicio = (pagina - 1) * limite
+    return {
+        "total": total,
+        "pagina": pagina,
+        "repuestos": repuestos[inicio:inicio + limite],
+        "hay_stock": any(s["stock"] > 0 for r in repuestos for s in r["sucursales"]),
+    }
 
 
 def buscar_repuestos(
@@ -100,6 +115,8 @@ def buscar_repuestos(
     repuesto: str | None = None,
     categoria: str | None = None,
     limite: int = LIMITE_RESULTADOS,
+    pagina: int | None = None,
+    sucursal_id: int | None = None,
 ) -> dict:
     marca = (marca or "").strip() or None
     modelo = (modelo or "").strip() or None
@@ -108,6 +125,16 @@ def buscar_repuestos(
     palabras = (repuesto or "").lower().split()
     con_vehiculo = bool(marca or modelo or anio is not None)
     maximo = MAX_FILAS_RELEVANCIA if (palabras or con_vehiculo or categoria) else limite
+    if pagina is not None or sucursal_id is not None:
+        maximo = None
     repuestos = repositorio.obtener_repuestos(marca, modelo, anio, [], categoria, maximo)
     repuestos = [pieza for pieza in repuestos if coincide_busqueda(pieza, palabras)]
-    return preparar_resultado(repuestos, palabras, categoria, limite)
+    if sucursal_id is not None:
+        repuestos = [
+            pieza for pieza in repuestos
+            if any(
+                sucursal.get("id") == sucursal_id and stock_inventario(sucursal) > 0
+                for sucursal in pieza["sucursales"]
+            )
+        ]
+    return preparar_resultado(repuestos, palabras, categoria, limite, pagina)

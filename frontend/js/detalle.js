@@ -1,4 +1,4 @@
-/* Detalle: información del repuesto y existencias por sucursal, sin filtros. */
+/* Detalle: información del repuesto y existencias por sucursal. */
 (() => {
   "use strict";
   const $ = (id) => document.getElementById(id);
@@ -55,6 +55,39 @@
       : '<tr><td colspan="3">Este repuesto no tiene sucursales registradas.</td></tr>';
   }
 
+  async function cargarDisponibilidad(inventario = []) {
+    const selector = $("sucursal-detalle");
+    const estado = $("estado-sucursal-detalle");
+    let sucursales = inventario;
+    try {
+      const registradas = await api("/api/sucursales");
+      if (registradas.length) {
+        const stockPorSucursal = new Map(inventario.map(({ id, stock }) => [id, stock]));
+        sucursales = registradas.map((sucursal) => ({
+          ...sucursal, stock: stockPorSucursal.get(sucursal.id) ?? 0
+        }));
+      }
+    } catch (error) {
+      console.error(error);
+      estado.textContent = "No se pudo cargar la lista completa de sucursales.";
+    }
+    pintarSucursales(sucursales);
+    const opciones = sucursales.filter(({ id }) => id != null);
+    if (!opciones.length) return;
+    selector.innerHTML = opciones.map(({ id, nombre }) =>
+      `<option value="${escapar(id)}">${escapar(nombre)}</option>`).join("");
+    const inicial = opciones.find(({ nombre }) => nombre === "Sucursal Central") ?? opciones[0];
+    selector.value = String(inicial.id);
+    selector.disabled = false;
+    const mostrarStock = () => {
+      const sucursal = opciones.find(({ id }) => String(id) === selector.value);
+      estado.textContent = sucursal.stock > 0 ? `En stock: ${sucursal.stock}` : "Agotado";
+      estado.classList.toggle("stock-cero", sucursal.stock <= 0);
+    };
+    selector.addEventListener("change", mostrarStock);
+    mostrarStock();
+  }
+
   async function cargarDetalle() {
     const identificador = new URLSearchParams(location.search).get("id");
     if (!identificador || !/^[1-9]\d*$/.test(identificador) || Number(identificador) > 2147483647) {
@@ -70,7 +103,7 @@
       $("descripcion-producto").textContent = producto.descripcion || "Sin descripción disponible.";
       $("precio-producto").textContent = formatoPrecio.format(producto.precio);
       pintarImagen(producto.imagen, producto.nombre);
-      pintarSucursales(producto.sucursales);
+      await cargarDisponibilidad(producto.sucursales);
       document.title = `${producto.nombre} | Super-Repuestos`;
       $("producto-detalle").hidden = false;
       mostrarEstado("");

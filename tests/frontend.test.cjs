@@ -11,13 +11,14 @@ function crearElemento() {
     dataset: {}, options: [], eventos: {}, atributos: {},
     addEventListener(tipo, manejar) { this.eventos[tipo] = manejar; },
     setAttribute(nombre, valor) { this.atributos[nombre] = valor; },
+    getAttribute(nombre) { return this.atributos[nombre] ?? null; },
     removeAttribute(nombre) { delete this.atributos[nombre]; },
     querySelectorAll() { return []; },
     focus() { this.enfocado = true; }
   };
 }
 
-async function prepararCatalogo() {
+async function prepararCatalogo(esMovil = false) {
   const elementos = new Map();
   const elemento = (id) => {
     if (!elementos.has(id)) elementos.set(id, crearElemento());
@@ -25,7 +26,7 @@ async function prepararCatalogo() {
   };
   const contexto = vm.createContext({
     document: { getElementById: elemento, createElement: crearElemento },
-    window: { matchMedia: () => ({ matches: false }) },
+    window: { matchMedia: (consulta) => ({ matches: esMovil && consulta === "(max-width: 768px)" }) },
     console: { error() {} }, URLSearchParams, Intl,
     fetch: async (url) => ({
       ok: true,
@@ -40,6 +41,115 @@ async function prepararCatalogo() {
 function respuesta(datos, estado = 200) {
   return { ok: estado === 200, status: estado, json: async () => datos };
 }
+
+test("reintentar sucursales habilita el filtro después de un fallo temporal", async () => {
+  const { contexto, elemento } = await prepararCatalogo();
+  const reintentar = elemento("reintentar-sucursales");
+  contexto.fetch = async () => respuesta({}, 503);
+  await reintentar.eventos.click();
+  assert.equal(elemento("sucursal").disabled, true);
+  assert.equal(reintentar.hidden, false);
+
+  contexto.fetch = async () => respuesta([{ id: 1, nombre: "Sucursal Central" }]);
+  await reintentar.eventos.click();
+  assert.equal(elemento("sucursal").disabled, false);
+  assert.match(elemento("sucursal").innerHTML, /value="1">Sucursal Central/);
+  assert.equal(elemento("err-sucursal").textContent, "");
+  assert.equal(reintentar.hidden, true);
+});
+
+test("limpiar filtros restablece el catálogo y descarta los modelos pendientes", async () => {
+  const { contexto, elemento } = await prepararCatalogo();
+  const consultas = [];
+  let resolverModelos;
+  contexto.fetch = async (url) => {
+    consultas.push(url);
+    if (url.startsWith("/api/modelos")) {
+      return new Promise((resolve) => { resolverModelos = resolve; });
+    }
+    return respuesta({ total: 0, repuestos: [] });
+  };
+  elemento("marca").value = "Mazda";
+  elemento("repuesto").value = "Filtro";
+  elemento("sucursal").value = "1";
+  elemento("categorias").dataset.activa = "motor";
+  const pendiente = contexto.cargarModelos("Mazda");
+
+  await elemento("limpiar-filtros").eventos.click();
+  resolverModelos(respuesta(["Mazda 3"]));
+  await pendiente;
+
+  assert.equal(elemento("marca").value, "");
+  assert.equal(elemento("repuesto").value, "");
+  assert.equal(elemento("sucursal").value, "");
+  assert.equal(elemento("categorias").dataset.activa, "");
+  assert.equal(elemento("modelo").disabled, true);
+  assert.equal(elemento("anio").disabled, true);
+  assert.equal(consultas.at(-1), "/api/repuestos?pagina=1&limite=10");
+});
+
+test("el menú móvil aplica la categoría y se cierra devolviendo el foco", async () => {
+  const { contexto, elemento } = await prepararCatalogo(true);
+  const boton = elemento("categorias-toggle");
+  const consultas = [];
+  contexto.fetch = async (url) => {
+    consultas.push(url);
+    return respuesta({ total: 0, repuestos: [] });
+  };
+
+  boton.eventos.click();
+  assert.equal(boton.getAttribute("aria-expanded"), "true");
+  elemento("categorias").eventos.click({ target: { closest: () => ({ dataset: { cat: "motor" } }) } });
+  assert.equal(boton.getAttribute("aria-expanded"), "false");
+  assert.equal(elemento("categorias-etiqueta").textContent, "Categorías · Motor");
+  assert.equal(boton.enfocado, true);
+  assert.deepEqual(consultas, ["/api/repuestos?categoria=motor&pagina=1&limite=10"]);
+
+  boton.eventos.click();
+  elemento("categorias").eventos.keydown({ key: "Escape" });
+  assert.equal(boton.getAttribute("aria-expanded"), "false");
+});
+
+test("el catálogo pagina de diez en diez y reinicia al buscar", async () => {
+  const { contexto, elemento } = await prepararCatalogo();
+  const piezas = Array.from({ length: 21 }, (_, i) => ({
+    id: i + 1, nombre: `Repuesto ${i + 1}`, precio: 5, sucursales: []
+  }));
+  contexto.fetch = async (url) => {
+    const params = new URLSearchParams(url.split("?")[1]);
+    const pagina = Number(params.get("pagina"));
+    assert.equal(params.get("limite"), "10");
+    const resultados = params.has("repuesto") ? piezas.slice(0, 10) : piezas;
+    return respuesta({ total: resultados.length, pagina,
+      repuestos: resultados.slice((pagina - 1) * 10, pagina * 10) });
+  };
+  const idsVisibles = () => Array.from(
+    elemento("resultados").innerHTML.matchAll(/detalle\.html\?id=(\d+)/g),
+    (enlace) => Number(enlace[1])
+  );
+  const siguiente = elemento("pagina-siguiente");
+  const anterior = elemento("pagina-anterior");
+  assert.equal(elemento("paginacion").hidden, true);
+  await contexto.buscarRepuestos();
+  assert.equal(anterior.disabled, true);
+  assert.equal(siguiente.disabled, false);
+  assert.equal(elemento("paginacion").hidden, false);
+  const ids = idsVisibles();
+  assert.equal(ids.length, 10);
+  elemento("repuesto").value = "Repuesto";
+  await siguiente.eventos.click();
+  assert.equal(elemento("pagina-actual").textContent, "Página 2 de 3");
+  ids.push(...idsVisibles());
+  await siguiente.eventos.click();
+  assert.equal(siguiente.disabled, true);
+  ids.push(...idsVisibles());
+  assert.deepEqual(ids, piezas.map((pieza) => pieza.id));
+  await anterior.eventos.click();
+  assert.equal(elemento("pagina-actual").textContent, "Página 2 de 3");
+  await contexto.buscarRepuestos();
+  assert.equal(elemento("paginacion").hidden, true);
+  assert.deepEqual(idsVisibles(), ids.slice(0, 10));
+});
 
 function diferida() {
   let resolver;
@@ -135,7 +245,7 @@ test("inventario caído muestra el mensaje de CA4 y libera la búsqueda", async 
 test("precio y stock cero se mantienen visibles y los datos se escapan", async () => {
   const { contexto, elemento } = await prepararCatalogo();
   elemento("repuesto").value = "filtro";
-  contexto.fetch = async () => respuesta({ total: 1, repuestos: [{
+  contexto.fetch = async () => respuesta({ total: 1, hay_stock: false, repuestos: [{
     nombre: "<script>pieza</script>", precio: 12.5, imagen: null,
     sucursales: [{ nombre: "Santa Tecla", stock: 0 }]
   }] });
