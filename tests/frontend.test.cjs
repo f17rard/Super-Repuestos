@@ -11,13 +11,14 @@ function crearElemento() {
     dataset: {}, options: [], eventos: {}, atributos: {},
     addEventListener(tipo, manejar) { this.eventos[tipo] = manejar; },
     setAttribute(nombre, valor) { this.atributos[nombre] = valor; },
+    getAttribute(nombre) { return this.atributos[nombre] ?? null; },
     removeAttribute(nombre) { delete this.atributos[nombre]; },
     querySelectorAll() { return []; },
     focus() { this.enfocado = true; }
   };
 }
 
-async function prepararCatalogo() {
+async function prepararCatalogo(esMovil = false) {
   const elementos = new Map();
   const elemento = (id) => {
     if (!elementos.has(id)) elementos.set(id, crearElemento());
@@ -25,7 +26,7 @@ async function prepararCatalogo() {
   };
   const contexto = vm.createContext({
     document: { getElementById: elemento, createElement: crearElemento },
-    window: { matchMedia: () => ({ matches: false }) },
+    window: { matchMedia: (consulta) => ({ matches: esMovil && consulta === "(max-width: 768px)" }) },
     console: { error() {} }, URLSearchParams, Intl,
     fetch: async (url) => ({
       ok: true,
@@ -40,6 +41,28 @@ async function prepararCatalogo() {
 function respuesta(datos, estado = 200) {
   return { ok: estado === 200, status: estado, json: async () => datos };
 }
+
+test("el menú móvil aplica la categoría y se cierra devolviendo el foco", async () => {
+  const { contexto, elemento } = await prepararCatalogo(true);
+  const boton = elemento("categorias-toggle");
+  const consultas = [];
+  contexto.fetch = async (url) => {
+    consultas.push(url);
+    return respuesta({ total: 0, repuestos: [] });
+  };
+
+  boton.eventos.click();
+  assert.equal(boton.getAttribute("aria-expanded"), "true");
+  elemento("categorias").eventos.click({ target: { closest: () => ({ dataset: { cat: "motor" } }) } });
+  assert.equal(boton.getAttribute("aria-expanded"), "false");
+  assert.equal(elemento("categorias-etiqueta").textContent, "Categorías · Motor");
+  assert.equal(boton.enfocado, true);
+  assert.deepEqual(consultas, ["/api/repuestos?categoria=motor&pagina=1&limite=10"]);
+
+  boton.eventos.click();
+  elemento("categorias").eventos.keydown({ key: "Escape" });
+  assert.equal(boton.getAttribute("aria-expanded"), "false");
+});
 
 test("el catálogo pagina de diez en diez y reinicia al buscar", async () => {
   const { contexto, elemento } = await prepararCatalogo();

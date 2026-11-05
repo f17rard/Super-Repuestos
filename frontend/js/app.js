@@ -125,17 +125,39 @@ const CATEGORIAS = [
 ];
 
 function pintarCategorias() {
+  const valorActivo = $("categorias").dataset.activa || "";
+  const etiqueta = CATEGORIAS.find((categoria) => categoria.valor === valorActivo)?.etiqueta;
+  $("categorias-etiqueta").textContent = `Categorías · ${etiqueta || "Todas"}`;
   const boton = (valor, etiqueta) => {
-    const activa = ($("categorias").dataset.activa || "") === valor;
+    const activa = valorActivo === valor;
     return `<button type="button" class="cat-boton${activa ? " activa" : ""}" data-cat="${valor}" aria-pressed="${activa}">${etiqueta}</button>`;
   };
   $("categorias").innerHTML =
     boton("", "Todas") + CATEGORIAS.map((c) => boton(c.valor, c.etiqueta)).join("");
 }
 
+$("categorias-toggle").addEventListener("click", () => {
+  const boton = $("categorias-toggle");
+  boton.setAttribute("aria-expanded", String(boton.getAttribute("aria-expanded") !== "true"));
+});
+
+function cerrarCategorias() {
+  const boton = $("categorias-toggle");
+  if (boton.getAttribute("aria-expanded") !== "true") return;
+  boton.setAttribute("aria-expanded", "false");
+  if (window.matchMedia("(max-width: 768px)").matches) boton.focus();
+}
+
+for (const id of ["categorias-toggle", "categorias"]) {
+  $(id).addEventListener("keydown", (evento) => {
+    if (evento.key === "Escape") cerrarCategorias();
+  });
+}
+
 $("categorias").addEventListener("click", (e) => {
   const btn = e.target.closest(".cat-boton");
   if (!btn) return;
+  cerrarCategorias();
   if (($("categorias").dataset.activa || "") === btn.dataset.cat) return;
   $("categorias").dataset.activa = btn.dataset.cat;
   pintarCategorias();

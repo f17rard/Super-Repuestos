@@ -28,8 +28,6 @@
   --display-xl: clamp(2.5rem, 7vw, 4.75rem);
   --display-lg: clamp(1.35rem, 3vw, 1.9rem);
   --z-grano: 50;
-  --foto-ratio: 4 / 3;
-  --foto-fondo: #f1f3f5;
 }
 
 * {
@@ -197,6 +195,43 @@ select, input[type="text"] {
 input::placeholder { color: var(--dark-placeholder); }
 select option { background-color: var(--dark-input); color: var(--white); }
 select:disabled { opacity: 0.5; cursor: not-allowed; }
+.campo-select {
+  --ancho-flecha: 34px;
+  position: relative;
+}
+.campo-select select {
+  display: block;
+  width: 100%;
+  appearance: none;
+  padding-inline-end: calc(var(--ancho-flecha) + 12px);
+  text-overflow: ellipsis;
+}
+.campo-select::before,
+.campo-select::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+.campo-select::before {
+  inset: 1px 1px 1px auto;
+  width: var(--ancho-flecha);
+  background-color: var(--dark-card);
+  border-left: 1px solid var(--dark-line);
+  border-radius: 0 calc(var(--radius-sm) - 1px) calc(var(--radius-sm) - 1px) 0;
+}
+.campo-select::after {
+  top: 50%;
+  right: calc(1px + var(--ancho-flecha) / 2);
+  width: 8px;
+  height: 8px;
+  border: solid var(--white);
+  border-width: 0 2px 2px 0;
+  transform: translate(50%, -70%) rotate(45deg);
+}
+.campo-select:has(select:disabled)::before,
+.campo-select:has(select:disabled)::after {
+  opacity: 0.5;
+}
 select:focus, input:focus {
   outline: 2px solid var(--primary-red);
   outline-offset: 1px;
@@ -276,6 +311,7 @@ select:focus, input:focus {
   flex-direction: column;
   gap: 10px;
 }
+.categorias-toggle { display: none; }
 .cat-boton {
   width: 100%;
   text-align: left;
@@ -342,18 +378,26 @@ select:focus, input:focus {
 }
 /* Espacio para la foto del repuesto; sin imagen muestra un marcador */
 .repuesto-foto {
+  position: relative;
   display: grid;
   place-items: center;
-  background-color: var(--dark-input);
+  background-color: var(--white);
   border-right: 1px solid var(--dark-line);
 }
-.repuesto-foto img { width: 100%; height: 100%; object-fit: cover; }
+.repuesto-foto img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 .sin-imagen {
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--dark-placeholder);
+  color: var(--text-muted);
 }
 .ver-detalle {
   display: inline-flex;
@@ -523,24 +567,6 @@ td.num { font-size: 1.2rem; font-weight: 800; }
 .aviso-titulo:last-child { padding-bottom: 18px; }
 .aviso-texto { padding: 6px 24px 18px; max-width: 65ch; color: var(--text-muted); }
 
-/* ---------- 1. Foto: marco con proporción propia, sin recortes ---------- */
-#resultados .repuesto-foto {
-  aspect-ratio: var(--foto-ratio);
-  align-self: start;            /* no se estira al alto del texto */
-  width: 100%;
-  min-height: 0;
-  background: var(--foto-fondo);
-  overflow: hidden;
-}
-#resultados .repuesto-foto img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;          /* pieza completa. Cambiar a cover si prefieren llenar el marco */
-  object-position: center;
-  padding: 8px;
-}
- 
-
   .menu-lateral {
     width: 100%;
   }
@@ -578,8 +604,11 @@ td.num { font-size: 1.2rem; font-weight: 800; }
   .campo.ancho, .acciones { grid-column: 1 / -1; }
   .acciones { margin-top: 4px; }
   .encabezado-arte { opacity: 0.3; }
-  .repuesto { grid-template-columns: 110px 1fr; }
-  .repuesto-detalle { grid-column: 1 / -1; }
+  .repuesto { grid-template-columns: minmax(0, 1fr); }
+  .repuesto-foto {
+    height: clamp(200px, 50vw, 360px);
+    border-right: 0;
+  }
   .repuesto-cab { padding-bottom: 56px; }
   .repuesto-detalle { border-left: 0; border-top: 2px dashed var(--border-light); }
   .repuesto-detalle::before { top: -11px; left: -11px; }
@@ -596,34 +625,31 @@ td.num { font-size: 1.2rem; font-weight: 800; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
-/* ---------- Columna de la foto más ancha (escritorio y tablet) ---------- */
-@media (min-width: 641px) {
-  #resultados .repuesto { grid-template-columns: clamp(150px, 32%, 240px) 1fr; }
+/* En pantallas estrechas, el menú abierto ocupa espacio antes de los resultados. */
+@media (max-width: 768px) {
+  .contenido { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .menu-lateral { position: static; }
+  .menu-titulo { display: none; }
+  .menu-lateral .cat-boton { white-space: normal; min-height: 44px; }
+  .categorias-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--white);
+    background: var(--dark-bg);
+  }
+  .categorias-toggle:hover { color: var(--white); }
+  .categorias-toggle[aria-expanded="false"] + .categorias { display: none; }
+  .categorias-toggle[aria-expanded="true"] + .categorias { padding: 10px 4px 4px 0; }
+  .categorias-toggle[aria-expanded="true"] .categorias-flecha { transform: rotate(180deg); }
 }
  
-/* ---------- Tablet: menú lateral arriba, en fila con scroll ---------- */
-@media (max-width: 900px) {
-  .contenido { display: flex; flex-direction: column; gap: 16px; }
-}
- 
-/* ---------- Móvil: tarjeta apilada ---------- */
 @media (max-width: 640px) {
-  #resultados .repuesto {
-    grid-template-columns: 1fr;
-  }
-  #resultados .repuesto-foto {
-    --foto-ratio: 16 / 10;
-    max-height: 220px;
-  }
   .repuesto-cab,
   .repuesto-detalle {
     flex-wrap: wrap;
     gap: 8px;
   }
-}
- 
-/* ---------- Pantallas muy pequeñas ---------- */
-@media (max-width: 380px) {
-  #resultados .repuesto-foto { --foto-ratio: 4 / 3; } 
 }
 
